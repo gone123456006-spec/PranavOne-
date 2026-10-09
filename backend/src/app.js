@@ -2,7 +2,6 @@ import 'dotenv/config'
 import cors from 'cors'
 import express from 'express'
 import { getAllowedOrigins, getRuntimeStatus } from './config.js'
-import { isPostgresEnabled } from './db/postgres.js'
 import { isMongoEnabled } from './db/mongo.js'
 import { healthRouter } from './routes/health.js'
 import { apiRouter } from './routes/api.js'
@@ -41,17 +40,7 @@ export function createApp() {
     }),
   )
 
-  // Capture raw body for Razorpay webhook signature verification.
-  app.use(
-    express.json({
-      limit: '1mb',
-      verify(req, _res, buf) {
-        if (req.originalUrl?.includes('/payments/webhook')) {
-          req.rawBody = buf.toString('utf8')
-        }
-      },
-    }),
-  )
+  app.use(express.json({ limit: '1mb' }))
 
   // Lightweight keep-alive / uptime ping (no DB work).
   app.get('/health', (_req, res) => {
@@ -70,12 +59,7 @@ export function createApp() {
       message: 'BizVyapar API is running.',
       health: '/health',
       ready: runtime.ready,
-      database: isMongoEnabled()
-        ? 'mongodb'
-        : isPostgresEnabled()
-          ? 'postgres'
-          : 'file-tenants',
-      isolation: 'per-user-tenant',
+      database: isMongoEnabled() ? 'mongodb' : 'none',
     })
   })
 

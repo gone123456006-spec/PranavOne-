@@ -240,7 +240,7 @@ export default function TredsDash() {
               onOpenUser={setSelectedUserId}
               initialStatus="subscribed"
               title="Subscribed Users"
-              subtitle="Users who bought a subscription — with payment details"
+              subtitle="Users with an active subscription"
             />
           ) : null}
 

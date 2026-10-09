@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { getRuntimeStatus } from '../config.js'
 import { getEmailConfigStatus } from '../email.js'
+import { isMongoEnabled } from '../db/mongo.js'
 
 export const healthRouter = Router()
 
@@ -14,23 +15,14 @@ healthRouter.get('/', (_req, res) => {
     timestamp: new Date().toISOString(),
     platform: process.env.RENDER ? 'render' : process.env.VERCEL ? 'vercel' : 'local',
     ready: runtime.ready,
-    isolation: 'per-user-tenant',
-    database: process.env.DATABASE_URL ? 'postgres' : 'file-tenants',
-    durableSubscriptions: Boolean(process.env.DATABASE_URL),
+    database: isMongoEnabled() ? 'mongodb' : 'none',
     checks: {
-      razorpay: runtime.razorpay,
       email: runtime.email,
-      firebase: runtime.firebase,
       webinarLink: runtime.webinarLink,
       cors: runtime.cors,
-      database: Boolean(process.env.DATABASE_URL),
+      database: isMongoEnabled(),
     },
-    missing: [
-      ...runtime.missing,
-      ...(!process.env.DATABASE_URL && process.env.RENDER
-        ? ['DATABASE_URL']
-        : []),
-    ],
+    missing: runtime.missing,
     emailMode: email.mode || null,
   })
 })

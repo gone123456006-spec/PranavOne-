@@ -70,30 +70,6 @@ export function getEmailConfigStatus() {
   }
 }
 
-function getNextWorkshopSunday(from = new Date()) {
-  const next = new Date(from)
-  next.setHours(17, 0, 0, 0)
-
-  const day = next.getDay()
-  let addDays = (7 - day) % 7
-
-  if (addDays === 0 && from.getTime() >= next.getTime()) {
-    addDays = 7
-  }
-
-  next.setDate(next.getDate() + addDays)
-  return next
-}
-
-function formatWorkshopDate(date) {
-  return date.toLocaleDateString('en-IN', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
-}
-
 function escapeHtml(value) {
   return String(value || '')
     .replace(/&/g, '&amp;')
@@ -109,112 +85,6 @@ export function resolveWebinarLink(link) {
     return 'https://www.bizvyapar.in'
   }
   return value
-}
-
-function buildEmailContent({ name, paymentId, webinarLink, amountLabel }) {
-  const link = resolveWebinarLink(webinarLink)
-  const safeName = name || 'there'
-  const workshop = getNextWorkshopSunday()
-  const dateLabel = formatWorkshopDate(workshop)
-  const timeLabel = '5:00 PM (GMT +5:30) Calcutta, Chennai, Mumbai, New Delhi'
-  const hostLine =
-    'Hosted by CA Shree Ram Raut | Expertise in Finance, Taxation, Auditing & Risk Management | Founder BizVyapar'
-  const paidAmount = amountLabel || '₹1'
-  const safeLink = escapeHtml(link)
-  const safePaymentId = escapeHtml(paymentId)
-  const supportNumber = '9153832948'
-
-  const text = [
-    `Join BizVyapar Live Workshop Now!`,
-    hostLine,
-    '',
-    dateLabel,
-    timeLabel,
-    '',
-    `Hi ${safeName},`,
-    '',
-    'Thank You for choosing BizVyapar. Your payment is done. Now you are in for the Webinar.',
-    'Please save this email and join on time using the webinar room link below.',
-    '',
-    link ? `Join Webinar: ${link}` : 'We will share the webinar link shortly.',
-    link ? `Webinar room: ${link}` : '',
-    'Room password: N/A',
-    '',
-    'Payment details:',
-    `- Amount paid: ${paidAmount}`,
-    paymentId ? `- Payment ID: ${paymentId}` : '',
-    `- Status: Paid`,
-    '',
-    `Support contact number: ${supportNumber}`,
-    '',
-    'See you at the webinar!',
-    'Team BizVyapar',
-  ]
-    .filter(Boolean)
-    .join('\n')
-
-  const html = `
-    <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.55;color:#111827;max-width:640px;margin:0 auto;padding:8px 4px">
-      <h1 style="margin:0 0 10px;font-size:26px;line-height:1.25;color:#111827;font-weight:700">
-        Join BizVyapar Live Workshop Now!
-      </h1>
-      <p style="margin:0 0 14px;font-size:13px;line-height:1.5;color:#6b7280;font-style:italic">
-        ${escapeHtml(hostLine)}
-      </p>
-      <p style="margin:0 0 4px;font-size:15px;font-weight:700;color:#ea580c">
-        ${escapeHtml(dateLabel)}
-      </p>
-      <p style="margin:0 0 16px;font-size:15px;font-weight:700;color:#ea580c">
-        ${escapeHtml(timeLabel)}
-      </p>
-      <hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 18px" />
-      <p style="margin:0 0 10px;font-size:15px">Hi ${escapeHtml(safeName)},</p>
-      <p style="margin:0 0 10px;font-size:15px">
-        <strong>Thank You for choosing BizVyapar. Your payment is done. Now you are in for the Webinar.</strong>
-      </p>
-      <p style="margin:0 0 16px;font-size:15px;color:#374151">
-        Please save this email and join on time using the webinar room link below.
-      </p>
-      ${
-        link
-          ? `<p style="margin:0 0 14px">
-               <a href="${safeLink}" style="display:inline-block;background:#ffde03;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:10px">
-                 Join Webinar
-               </a>
-             </p>
-             <ul style="margin:0 0 16px;padding-left:20px;font-size:14px;color:#374151">
-               <li style="margin:0 0 8px">
-                 <strong>Webinar room:</strong>
-                 <a href="${safeLink}" style="color:#1a73e8;word-break:break-all">${safeLink}</a>
-               </li>
-               <li style="margin:0"><strong>Room password:</strong> N/A</li>
-             </ul>`
-          : `<p style="margin:0 0 16px;font-size:15px">We will share the webinar link shortly.</p>`
-      }
-      <p style="margin:0 0 8px;font-size:15px;font-weight:700;color:#111827">Payment details</p>
-      <ul style="margin:0 0 14px;padding-left:20px;font-size:14px;color:#374151">
-        <li style="margin:0 0 6px"><strong>Amount paid:</strong> ${escapeHtml(paidAmount)}</li>
-        ${
-          paymentId
-            ? `<li style="margin:0 0 6px"><strong>Payment ID:</strong> ${safePaymentId}</li>`
-            : ''
-        }
-        <li style="margin:0"><strong>Status:</strong> Paid</li>
-      </ul>
-      <p style="margin:0 0 18px;font-size:14px;color:#374151">
-        <strong>Support contact number:</strong>
-        <a href="tel:${supportNumber}" style="color:#111827;text-decoration:none">${supportNumber}</a>
-      </p>
-      <p style="margin:0;font-size:15px">See you at the webinar!<br/>Team BizVyapar</p>
-    </div>
-  `
-
-  return {
-    subject: 'Join BizVyapar Live Workshop — your seat is confirmed',
-    text,
-    html,
-    safeName,
-  }
 }
 
 function buildReminderContent({ name, kind, webinarLink, workshopAt }) {
@@ -368,22 +238,6 @@ async function sendMail({ to, name, subject, text, html }) {
     })
     return { mode: `${config.provider}-smtp`, messageId: info.messageId || null }
   }
-}
-
-export async function sendWebinarPaymentEmail({
-  to,
-  name,
-  paymentId,
-  webinarLink,
-  amountLabel,
-}) {
-  const { subject, text, html, safeName } = buildEmailContent({
-    name,
-    paymentId,
-    webinarLink,
-    amountLabel,
-  })
-  return sendMail({ to, name: safeName, subject, text, html })
 }
 
 export async function sendWorkshopReminderEmail({

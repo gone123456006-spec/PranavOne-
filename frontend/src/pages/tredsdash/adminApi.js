@@ -60,13 +60,6 @@ export function formatDate(value) {
   }
 }
 
-export function formatAmount(paise) {
-  const value = Number(paise) / 100
-  if (!Number.isFinite(value)) return '—'
-  if (Number.isInteger(value)) return `₹${value}`
-  return `₹${value.toFixed(2)}`
-}
-
 export async function downloadUsersExport(token, { preset, from, to } = {}) {
   const params = new URLSearchParams()
   if (preset) params.set('preset', preset)

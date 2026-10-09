@@ -3,17 +3,13 @@
  * No expiry / renewal — entitlement is account-bound until admin revoke.
  */
 
-export function buildSubscription(profile = {}, paymentCount = 0) {
+export function buildSubscription(profile = {}) {
   const revoked = profile.subscriptionStatus === 'revoked'
   const explicitLifetime =
     profile.subscriptionStatus === 'active' &&
     profile.subscriptionType === 'lifetime'
 
-  // Back-compat for accounts paid before lifetime fields existed
-  const legacyPaid =
-    profile.status === 'paid' || Number(paymentCount || 0) > 0
-
-  const active = !revoked && (explicitLifetime || legacyPaid)
+  const active = !revoked && explicitLifetime
 
   return {
     status: revoked ? 'revoked' : active ? 'active' : 'none',
@@ -24,35 +20,4 @@ export function buildSubscription(profile = {}, paymentCount = 0) {
     expiresAt: null,
     label: active ? 'Subscription: Active' : 'No active subscription',
   }
-}
-
-export function applyLifetimeEntitlement(profile = {}, now = new Date().toISOString()) {
-  return {
-    ...profile,
-    status: 'paid',
-    subscriptionStatus: 'active',
-    subscriptionType: 'lifetime',
-    subscriptionActivatedAt: profile.subscriptionActivatedAt || now,
-    updatedAt: now,
-  }
-}
-
-export function isLifetimeActive(profile = {}, paymentCount = 0) {
-  return buildSubscription(profile, paymentCount).status === 'active'
-}
-
-/** Comma-separated emails that should always keep lifetime access (recovery). */
-export function getLifetimeGrantEmails() {
-  return String(process.env.LIFETIME_GRANT_EMAILS || '')
-    .split(',')
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean)
-}
-
-export function shouldGrantLifetimeFromEnv(email) {
-  const normalized = String(email || '')
-    .trim()
-    .toLowerCase()
-  if (!normalized) return false
-  return getLifetimeGrantEmails().includes(normalized)
 }

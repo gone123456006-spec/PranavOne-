@@ -1,12 +1,9 @@
 /**
- * Users + subscriptions + refresh tokens.
- * Prefers MongoDB Atlas when MONGODB_URI is set; otherwise Postgres.
+ * MongoDB-backed auth: users, subscriptions, refresh tokens, profiles.
  * userId (UUID) is the permanent identity — never derived from name/email/phone.
  */
 import { randomUUID } from 'node:crypto'
-import { getPool, isPostgresEnabled } from '../db/postgres.js'
-import { isMongoEnabled } from '../db/mongo.js'
-import * as mongoAuth from './mongoUserStore.js'
+import { col, isMongoEnabled } from '../db/mongo.js'
 import {
   createRefreshTokenRaw,
   hashToken,
@@ -14,10 +11,6 @@ import {
   refreshExpiryDate,
   signAccessToken,
 } from './tokens.js'
-
-function preferMongo() {
-  return isMongoEnabled()
-}
 
 function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase()
@@ -38,10 +31,6 @@ function sanitizeName(name) {
     .trim()
     .replace(/\s+/g, ' ')
     .slice(0, 120)
-}
-
-function namesMatch(a, b) {
-  return sanitizeName(a).toLowerCase() === sanitizeName(b).toLowerCase()
 }
 
 function validateEmailPhone({ email, phone }) {
@@ -65,37 +54,35 @@ function validateEmailPhone({ email, phone }) {
 function validateIdentity({ name, email, phone }) {
   const cleanName = sanitizeName(name)
   const { cleanEmail, cleanPhone } = validateEmailPhone({ email, phone })
-
   if (!cleanName || cleanName.length < 2) {
     const error = new Error('Please enter your full name.')
     error.status = 400
     throw error
   }
-
   return { cleanName, cleanEmail, cleanPhone }
 }
 
-function mapUser(row) {
-  if (!row) return null
-  const id = String(row.id || row._id || '')
+function mapUser(doc) {
+  if (!doc) return null
+  const id = String(doc._id || doc.id)
   return {
     id,
     userId: id,
     uid: id,
-    email: row.email,
-    name: row.name,
-    phone: row.phone,
-    emailVerified: Boolean(row.email_verified ?? row.emailVerified),
-    provider: row.provider || 'local',
-    status: row.status || 'active',
-    createdAt: row.created_at || row.createdAt,
-    updatedAt: row.updated_at || row.updatedAt,
-    lastLoginAt: row.last_login_at || row.lastLoginAt,
+    email: doc.email,
+    name: doc.name,
+    phone: doc.phone,
+    emailVerified: Boolean(doc.emailVerified),
+    provider: doc.provider || 'local',
+    status: doc.status || 'active',
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+    lastLoginAt: doc.lastLoginAt,
   }
 }
 
-function mapSubscription(row) {
-  if (!row) {
+function mapSubscription(doc) {
+  if (!doc) {
     return {
       plan: null,
       status: 'none',
@@ -104,209 +91,149 @@ function mapSubscription(row) {
       label: 'No active subscription',
     }
   }
-  const active = row.status === 'active' && row.plan === 'lifetime'
+  const active = doc.status === 'active' && doc.plan === 'lifetime'
   return {
-    plan: row.plan,
-    status: row.status,
-    expiresAt: row.expires_at,
-    activatedAt: row.activated_at,
+    plan: doc.plan || null,
+    status: doc.status || 'none',
+    expiresAt: doc.expiresAt || null,
+    activatedAt: doc.activatedAt || null,
     label: active ? 'Subscription: Active' : 'No active subscription',
   }
 }
 
-export function assertPostgres() {
-  if (preferMongo()) return
-  if (!isPostgresEnabled()) {
-    const error = new Error(
-      'Auth requires MONGODB_URI or DATABASE_URL for permanent accounts.',
-    )
+function ACCESS_TTL_SECONDS() {
+  const raw = String(process.env.ACCESS_TOKEN_TTL || '15m').trim()
+  if (raw.endsWith('m')) return Number(raw.slice(0, -1)) * 60
+  if (raw.endsWith('h')) return Number(raw.slice(0, -1)) * 3600
+  if (raw.endsWith('s')) return Number(raw.slice(0, -1))
+  return 900
+}
+
+export function assertMongoAuth() {
+  if (!isMongoEnabled()) {
+    const error = new Error('MongoDB is not configured (MONGODB_URI).')
     error.status = 503
     throw error
   }
 }
 
 export async function findUserByEmail(email) {
-  if (preferMongo()) return mongoAuth.findUserByEmail(email)
-  assertPostgres()
-  const db = getPool()
-  const res = await db.query(`SELECT * FROM users WHERE email = $1 LIMIT 1`, [
-    normalizeEmail(email),
-  ])
-  return res.rows[0] || null
+  assertMongoAuth()
+  return col('users').findOne({ email: normalizeEmail(email) })
 }
 
 export async function findUserByPhone(phone) {
-  if (preferMongo()) return mongoAuth.findUserByPhone(phone)
-  assertPostgres()
+  assertMongoAuth()
   const cleanPhone = normalizePhone(phone)
   if (!cleanPhone) return null
-  const db = getPool()
-  const res = await db.query(
-    `SELECT * FROM users WHERE phone = $1 LIMIT 1`,
-    [cleanPhone],
-  )
-  return res.rows[0] || null
+  return col('users').findOne({ phone: cleanPhone })
 }
 
 export async function findUserById(userId) {
-  if (preferMongo()) return mongoAuth.findUserById(userId)
-  assertPostgres()
-  const db = getPool()
-  const res = await db.query(`SELECT * FROM users WHERE id = $1 LIMIT 1`, [
-    userId,
-  ])
-  return res.rows[0] || null
+  assertMongoAuth()
+  return col('users').findOne({ _id: String(userId) })
 }
 
 export async function getSubscriptionByUserId(userId) {
-  if (preferMongo()) return mongoAuth.getSubscriptionByUserId(userId)
-  assertPostgres()
-  const db = getPool()
-  const res = await db.query(
-    `SELECT * FROM subscriptions WHERE user_id = $1 LIMIT 1`,
-    [userId],
-  )
-  return mapSubscription(res.rows[0])
+  assertMongoAuth()
+  const doc = await col('subscriptions').findOne({ userId: String(userId) })
+  return mapSubscription(doc)
 }
 
 export async function isLifetimeActiveForUser(userId) {
-  if (preferMongo()) return mongoAuth.isLifetimeActiveForUser(userId)
   const sub = await getSubscriptionByUserId(userId)
   return sub.status === 'active' && sub.plan === 'lifetime'
 }
 
-/**
- * Ensure tenant/profile rows exist for payment isolation.
- * Fast path: upsert by deterministic tenant_id = uid_<userId> (2 queries).
- * Never fails auth — recovers from email/uid unique conflicts.
- */
+export async function activateLifetimeSubscription(userId) {
+  assertMongoAuth()
+  const now = new Date()
+  await col('subscriptions').updateOne(
+    { userId: String(userId) },
+    {
+      $set: {
+        plan: 'lifetime',
+        status: 'active',
+        activatedAt: now,
+        updatedAt: now,
+      },
+      $setOnInsert: {
+        _id: randomUUID(),
+        userId: String(userId),
+        expiresAt: null,
+        createdAt: now,
+      },
+    },
+    { upsert: true },
+  )
+  // Mirror on profile for admin views
+  await col('profiles').updateOne(
+    { uid: String(userId) },
+    {
+      $set: {
+        subscriptionStatus: 'active',
+        subscriptionType: 'lifetime',
+        subscriptionActivatedAt: now,
+        updatedAt: now,
+      },
+    },
+  ).catch(() => undefined)
+  return getSubscriptionByUserId(userId)
+}
+
 export async function ensureTenantForUser(user) {
-  if (preferMongo()) return mongoAuth.ensureTenantForUser(user)
-  assertPostgres()
-  const db = getPool()
+  assertMongoAuth()
   const userId = String(user.id || user.userId || '').trim()
   const email = normalizeEmail(user.email)
-  const now = new Date().toISOString()
   const name = sanitizeName(user.name) || null
   const phone = normalizePhone(user.phone)
+  const tenantId = userId
+    ? `uid_${userId}`
+    : `email_${Buffer.from(email || 'unknown').toString('hex').slice(0, 40)}`
+  const now = new Date()
 
-  if (!userId && !email) {
-    const error = new Error('Could not set up your account. Please try again.')
-    error.status = 400
-    throw error
-  }
+  const existing = await col('profiles').findOne({
+    $or: [
+      ...(userId ? [{ uid: userId }, { tenantId: `uid_${userId}` }] : []),
+      ...(email ? [{ email }] : []),
+    ],
+  })
 
-  const preferredId = userId ? `uid_${userId}` : null
+  const id = existing?.tenantId || tenantId
 
-  try {
-    if (preferredId) {
-      try {
-        await db.query(
-          `INSERT INTO tenants (tenant_id, email, uid, created_at, updated_at)
-           VALUES ($1, $2, $3, $4::timestamptz, $4::timestamptz)
-           ON CONFLICT (tenant_id) DO UPDATE SET
-             email = COALESCE(EXCLUDED.email, tenants.email),
-             uid = COALESCE(EXCLUDED.uid, tenants.uid),
-             updated_at = EXCLUDED.updated_at`,
-          [preferredId, email || null, userId, now],
-        )
-        await upsertProfileForTenant(db, preferredId, {
-          email,
-          userId,
-          name,
-          phone,
-          now,
-        })
-        return preferredId
-      } catch (error) {
-        if (error?.code !== '23505') throw error
-        // Email/uid owned by another tenant — fall through and claim
-      }
-    }
-
-    const existing = await db.query(
-      `SELECT tenant_id FROM tenants
-       WHERE ($1::text IS NOT NULL AND uid = $1)
-          OR ($2::text IS NOT NULL AND email = $2)
-       LIMIT 1`,
-      [userId || null, email || null],
-    )
-    const tenantId = existing.rows[0]?.tenant_id || preferredId
-    if (!tenantId) return preferredId || `tmp_${randomUUID()}`
-
-    await db.query(
-      `UPDATE tenants
-       SET email = COALESCE($2, email),
-           uid = COALESCE($3, uid),
-           updated_at = $4::timestamptz
-       WHERE tenant_id = $1`,
-      [tenantId, email || null, userId || null, now],
-    )
-    await upsertProfileForTenant(db, tenantId, {
-      email,
-      userId,
-      name,
-      phone,
-      now,
-    })
-    return tenantId
-  } catch (error) {
-    // Last resort: do not break Sign In / Sign Up on tenant sync issues
-    console.error('ensureTenantForUser soft-fail:', error.message)
-    if (preferredId) return preferredId
-    if (email) {
-      const again = await db
-        .query(`SELECT tenant_id FROM tenants WHERE email = $1 LIMIT 1`, [email])
-        .catch(() => ({ rows: [] }))
-      if (again.rows[0]?.tenant_id) return again.rows[0].tenant_id
-    }
-    return preferredId || `uid_${userId || randomUUID()}`
-  }
-}
-
-async function upsertProfileForTenant(db, tenantId, { email, userId, name, phone, now }) {
-  await db.query(
-    `INSERT INTO profiles (
-       tenant_id, email, uid, name, phone, provider, email_verified,
-       status, created_at, updated_at
-     ) VALUES (
-       $1, $2, $3, $4, $5, 'local', TRUE, 'active', $6::timestamptz, $6::timestamptz
-     )
-     ON CONFLICT (tenant_id) DO UPDATE SET
-       email = COALESCE(EXCLUDED.email, profiles.email),
-       uid = COALESCE(EXCLUDED.uid, profiles.uid),
-       name = COALESCE(EXCLUDED.name, profiles.name),
-       phone = COALESCE(EXCLUDED.phone, profiles.phone),
-       provider = 'local',
-       email_verified = TRUE,
-       updated_at = EXCLUDED.updated_at`,
-    [tenantId, email, userId || null, name, phone, now],
+  await col('profiles').updateOne(
+    { tenantId: id },
+    {
+      $set: {
+        email: email || existing?.email || null,
+        uid: userId || existing?.uid || null,
+        name: name || existing?.name || null,
+        phone: phone || existing?.phone || null,
+        provider: 'local',
+        emailVerified: true,
+        status: 'active',
+        updatedAt: now,
+      },
+      $setOnInsert: {
+        tenantId: id,
+        createdAt: now,
+        lastLoginAt: null,
+        subscriptionStatus: 'none',
+        subscriptionType: null,
+        subscriptionActivatedAt: null,
+      },
+    },
+    { upsert: true },
   )
+
+  return id
 }
 
-/**
- * Sign In — Gmail + mobile only (existing accounts).
- * Optimized: one joined SELECT; login bookkeeping is non-blocking.
- */
 export async function loginWithEmailPhone({ email, phone }) {
-  if (preferMongo()) return mongoAuth.loginWithEmailPhone({ email, phone })
-  assertPostgres()
+  assertMongoAuth()
   const { cleanEmail, cleanPhone } = validateEmailPhone({ email, phone })
-  const db = getPool()
 
-  const found = await db.query(
-    `SELECT u.*,
-            s.plan AS sub_plan,
-            s.status AS sub_status,
-            s.expires_at AS sub_expires_at,
-            s.activated_at AS sub_activated_at
-     FROM users u
-     LEFT JOIN subscriptions s ON s.user_id = u.id
-     WHERE u.email = $1
-     LIMIT 1`,
-    [cleanEmail],
-  )
-  const existing = found.rows[0]
+  const existing = await findUserByEmail(cleanEmail)
   if (!existing || existing.status === 'disabled') {
     const error = new Error('No account found. Please Sign Up.')
     error.status = 404
@@ -322,38 +249,36 @@ export async function loginWithEmailPhone({ email, phone }) {
     throw error
   }
 
-  const user = mapUser(existing)
-  const tenantId = `uid_${user.id}`
-  const subscription = mapSubscription({
-    plan: existing.sub_plan,
-    status: existing.sub_status,
-    expires_at: existing.sub_expires_at,
-    activated_at: existing.sub_activated_at,
-  })
-
-  // Do not block the response on bookkeeping / tenant warm-up
-  void db
-    .query(
-      `UPDATE users
-       SET failed_login_attempts = 0,
-           locked_until = NULL,
-           last_login_at = NOW(),
-           updated_at = NOW()
-       WHERE id = $1`,
-      [existing.id],
+  const userId = String(existing._id)
+  const now = new Date()
+  void col('users')
+    .updateOne(
+      { _id: userId },
+      {
+        $set: {
+          failedLoginAttempts: 0,
+          lockedUntil: null,
+          lastLoginAt: now,
+          updatedAt: now,
+        },
+      },
     )
-    .then(() => ensureTenantForUser(user))
     .catch(() => undefined)
+
+  const user = mapUser({
+    ...existing,
+    lastLoginAt: now,
+    updatedAt: now,
+  })
+  const tenantId = `uid_${user.id}`
+  const subscription = await getSubscriptionByUserId(user.id)
+  void ensureTenantForUser(user).catch(() => undefined)
 
   return { user, tenantId, created: false, subscription }
 }
 
-/**
- * Sign Up — Name + Gmail + mobile (new accounts only).
- */
 export async function registerUser({ name, email, phone }) {
-  if (preferMongo()) return mongoAuth.registerUser({ name, email, phone })
-  assertPostgres()
+  assertMongoAuth()
   const { cleanName, cleanEmail, cleanPhone } = validateIdentity({
     name,
     email,
@@ -379,33 +304,39 @@ export async function registerUser({ name, email, phone }) {
   }
 
   const userId = newUserId()
-  const subId = randomUUID()
-  const db = getPool()
-  let row
+  const now = new Date()
   try {
-    // Fast path: one round-trip insert (no pre-read, no explicit BEGIN)
-    const inserted = await db.query(
-      `WITH new_user AS (
-         INSERT INTO users (
-           id, email, password_hash, name, phone, email_verified, provider, status
-         ) VALUES ($1, $2, '', $3, $4, FALSE, 'local', 'active')
-         RETURNING *
-       ),
-       new_sub AS (
-         INSERT INTO subscriptions (id, user_id, plan, status, expires_at, activated_at)
-         SELECT $5, id, NULL, 'none', NULL, NULL FROM new_user
-       )
-       SELECT * FROM new_user`,
-      [userId, cleanEmail, cleanName, cleanPhone, subId],
-    )
-    row = inserted.rows[0]
-    if (!row) {
-      throw new Error('Could not create account. Please try again.')
-    }
+    await Promise.all([
+      col('users').insertOne({
+        _id: userId,
+        email: cleanEmail,
+        passwordHash: null,
+        name: cleanName,
+        phone: cleanPhone,
+        emailVerified: false,
+        provider: 'local',
+        status: 'active',
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        lastLoginAt: null,
+        createdAt: now,
+        updatedAt: now,
+      }),
+      col('subscriptions').insertOne({
+        _id: randomUUID(),
+        userId,
+        plan: null,
+        status: 'none',
+        expiresAt: null,
+        activatedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    ])
   } catch (error) {
-    if (error?.status === 409) throw error
-    if (error?.code === '23505') {
-      if (/phone/i.test(error.constraint || error.detail || '')) {
+    if (error?.code === 11000) {
+      const key = JSON.stringify(error.keyPattern || error.keyValue || {})
+      if (/phone/i.test(key)) {
         const err = new Error(
           'This mobile number is already registered. Please Sign In.',
         )
@@ -421,11 +352,20 @@ export async function registerUser({ name, email, phone }) {
     throw error
   }
 
-  const user = mapUser(row)
+  const user = mapUser({
+    _id: userId,
+    email: cleanEmail,
+    name: cleanName,
+    phone: cleanPhone,
+    emailVerified: false,
+    provider: 'local',
+    status: 'active',
+    createdAt: now,
+    updatedAt: now,
+    lastLoginAt: null,
+  })
   const tenantId = `uid_${user.id}`
-  // Do not block Sign Up on tenant warm-up / legacy migrate
   void ensureTenantForUser(user).catch(() => undefined)
-  void migrateLegacyLifetimeByEmail(cleanEmail, userId).catch(() => undefined)
 
   return {
     user,
@@ -435,76 +375,28 @@ export async function registerUser({ name, email, phone }) {
   }
 }
 
-/** Join / Next flow — sign up if new, otherwise sign in with email+phone. */
-export async function signInWithDetails({ name, email, phone }) {
-  const existing = await findUserByEmail(normalizeEmail(email))
-  if (existing) {
-    return loginWithEmailPhone({ email, phone })
-  }
-  return registerUser({ name, email, phone })
-}
-
-export async function authenticateUser(input) {
-  return loginWithEmailPhone(input)
-}
-
-/**
- * If this email previously paid under the old profile system,
- * attach lifetime to the new permanent userId.
- */
-async function migrateLegacyLifetimeByEmail(email, userId) {
-  const db = getPool()
-  const res = await db.query(
-    `SELECT tenant_id, uid, subscription_status, status
-     FROM profiles
-     WHERE email = $1
-       AND (
-         subscription_status = 'active'
-         OR status = 'paid'
-       )
-       AND COALESCE(subscription_status, 'none') <> 'revoked'
-     LIMIT 1`,
-    [email],
-  )
-  const legacy = res.rows[0]
-  if (!legacy) return false
-
-  await activateLifetimeSubscription(userId)
-
-  if (legacy.uid && legacy.uid !== userId) {
-    await db.query(
-      `UPDATE profiles
-       SET uid = $2, updated_at = NOW()
-       WHERE tenant_id = $1`,
-      [legacy.tenant_id, userId],
-    ).catch(() => undefined)
-  }
-  return true
-}
-
 export async function issueTokenPair(user, meta = {}) {
-  if (preferMongo()) return mongoAuth.issueTokenPair(user, meta)
+  assertMongoAuth()
   const refreshRaw = createRefreshTokenRaw()
   const tokenHash = hashToken(refreshRaw)
   const expiresAt = refreshExpiryDate()
-  const db = getPool()
   const id = randomUUID()
+  const userId = String(user.id || user.userId)
+
   const [accessToken] = await Promise.all([
     signAccessToken(user),
-    db.query(
-      `INSERT INTO refresh_tokens (
-         id, user_id, token_hash, expires_at, user_agent, ip
-       ) VALUES ($1, $2, $3, $4::timestamptz, $5, $6)`,
-      [
-        id,
-        user.id || user.userId,
-        tokenHash,
-        expiresAt.toISOString(),
-        meta.userAgent || null,
-        meta.ip || null,
-      ],
-    ),
+    col('refresh_tokens').insertOne({
+      _id: id,
+      userId,
+      tokenHash,
+      expiresAt,
+      revokedAt: null,
+      userAgent: meta.userAgent || null,
+      ip: meta.ip || null,
+      createdAt: new Date(),
+    }),
   ])
+
   return {
     accessToken,
     refreshToken: refreshRaw,
@@ -513,172 +405,71 @@ export async function issueTokenPair(user, meta = {}) {
   }
 }
 
-function ACCESS_TTL_SECONDS() {
-  const raw = String(process.env.ACCESS_TOKEN_TTL || '15m').trim()
-  if (raw.endsWith('m')) return Number(raw.slice(0, -1)) * 60
-  if (raw.endsWith('h')) return Number(raw.slice(0, -1)) * 3600
-  if (raw.endsWith('s')) return Number(raw.slice(0, -1))
-  return 900
-}
-
 export async function rotateRefreshToken(refreshToken, meta = {}) {
-  if (preferMongo()) return mongoAuth.rotateRefreshToken(refreshToken, meta)
-  assertPostgres()
+  assertMongoAuth()
   const tokenHash = hashToken(refreshToken)
-  const db = getPool()
-  const client = await db.connect()
-  try {
-    await client.query('BEGIN')
-    const found = await client.query(
-      `SELECT * FROM refresh_tokens
-       WHERE token_hash = $1
-       LIMIT 1
-       FOR UPDATE`,
-      [tokenHash],
-    )
-    const row = found.rows[0]
-    if (!row || row.revoked_at || new Date(row.expires_at) <= new Date()) {
-      await client.query('ROLLBACK')
-      const error = new Error('Session expired. Please sign in again.')
-      error.status = 401
-      throw error
-    }
-
-    await client.query(
-      `UPDATE refresh_tokens SET revoked_at = NOW() WHERE id = $1`,
-      [row.id],
-    )
-
-    const userRes = await client.query(`SELECT * FROM users WHERE id = $1`, [
-      row.user_id,
-    ])
-    const userRow = userRes.rows[0]
-    if (!userRow || userRow.status === 'disabled') {
-      await client.query('ROLLBACK')
-      const error = new Error('Session expired. Please sign in again.')
-      error.status = 401
-      throw error
-    }
-
-    const user = mapUser(userRow)
-    const accessToken = await signAccessToken(user)
-    const newRaw = createRefreshTokenRaw()
-    const newHash = hashToken(newRaw)
-    const expiresAt = refreshExpiryDate()
-    await client.query(
-      `INSERT INTO refresh_tokens (
-         id, user_id, token_hash, expires_at, user_agent, ip
-       ) VALUES ($1, $2, $3, $4::timestamptz, $5, $6)`,
-      [
-        randomUUID(),
-        user.id,
-        newHash,
-        expiresAt.toISOString(),
-        meta.userAgent || null,
-        meta.ip || null,
-      ],
-    )
-    await client.query('COMMIT')
-    await ensureTenantForUser(user)
-    return {
-      user,
-      accessToken,
-      refreshToken: newRaw,
-      expiresIn: ACCESS_TTL_SECONDS(),
-      refreshExpiresAt: expiresAt.toISOString(),
-    }
-  } catch (error) {
-    try {
-      await client.query('ROLLBACK')
-    } catch {
-      // ignore
-    }
+  const row = await col('refresh_tokens').findOne({ tokenHash })
+  if (!row || row.revokedAt || new Date(row.expiresAt) <= new Date()) {
+    const error = new Error('Session expired. Please sign in again.')
+    error.status = 401
     throw error
-  } finally {
-    client.release()
   }
+
+  await col('refresh_tokens').updateOne(
+    { _id: row._id },
+    { $set: { revokedAt: new Date() } },
+  )
+
+  const userRow = await findUserById(row.userId)
+  if (!userRow || userRow.status === 'disabled') {
+    const error = new Error('Session expired. Please sign in again.')
+    error.status = 401
+    throw error
+  }
+
+  const user = mapUser(userRow)
+  const tokens = await issueTokenPair(user, meta)
+  return { user, ...tokens }
 }
 
 export async function revokeRefreshToken(refreshToken) {
-  if (preferMongo()) return mongoAuth.revokeRefreshToken(refreshToken)
+  assertMongoAuth()
   if (!refreshToken) return
-  assertPostgres()
-  const db = getPool()
-  await db.query(
-    `UPDATE refresh_tokens
-     SET revoked_at = NOW()
-     WHERE token_hash = $1 AND revoked_at IS NULL`,
-    [hashToken(refreshToken)],
+  const tokenHash = hashToken(refreshToken)
+  await col('refresh_tokens').updateOne(
+    { tokenHash },
+    { $set: { revokedAt: new Date() } },
   )
 }
 
 export async function revokeAllRefreshTokensForUser(userId) {
-  if (preferMongo()) return mongoAuth.revokeAllRefreshTokensForUser(userId)
-  assertPostgres()
-  const db = getPool()
-  await db.query(
-    `UPDATE refresh_tokens
-     SET revoked_at = NOW()
-     WHERE user_id = $1 AND revoked_at IS NULL`,
-    [userId],
+  assertMongoAuth()
+  await col('refresh_tokens').updateMany(
+    { userId: String(userId), revokedAt: null },
+    { $set: { revokedAt: new Date() } },
   )
 }
 
-export async function activateLifetimeSubscription(userId) {
-  if (preferMongo()) return mongoAuth.activateLifetimeSubscription(userId)
-  assertPostgres()
-  const db = getPool()
-  const now = new Date().toISOString()
-  await db.query(
-    `INSERT INTO subscriptions (id, user_id, plan, status, expires_at, activated_at, updated_at)
-     VALUES ($1, $2, 'lifetime', 'active', NULL, $3::timestamptz, $3::timestamptz)
-     ON CONFLICT (user_id) DO UPDATE SET
-       plan = 'lifetime',
-       status = 'active',
-       expires_at = NULL,
-       activated_at = COALESCE(subscriptions.activated_at, EXCLUDED.activated_at),
-       updated_at = EXCLUDED.updated_at
-     WHERE COALESCE(subscriptions.status, 'none') <> 'revoked'`,
-    [randomUUID(), userId, now],
-  )
-
-  // Mirror onto profile for legacy readers
-  const tenantId = `uid_${userId}`
-  await db.query(
-    `UPDATE profiles
-     SET status = 'paid',
-         subscription_status = 'active',
-         subscription_type = 'lifetime',
-         subscription_activated_at = COALESCE(subscription_activated_at, $2::timestamptz),
-         updated_at = $2::timestamptz
-     WHERE tenant_id = $1
-       AND COALESCE(subscription_status, 'none') <> 'revoked'`,
-    [tenantId, now],
-  )
-}
-
-export async function updateUserProfile(userId, { name, phone }) {
-  if (preferMongo()) return mongoAuth.updateUserProfile(userId, { name, phone })
-  assertPostgres()
-  const db = getPool()
-  const cleanName = name != null ? sanitizeName(name) : null
-  const cleanPhone = phone !== undefined ? normalizePhone(phone) : undefined
-  await db.query(
-    `UPDATE users
-     SET name = COALESCE($2, name),
-         phone = CASE WHEN $3::boolean THEN $4 ELSE phone END,
-         updated_at = NOW()
-     WHERE id = $1`,
-    [
-      userId,
-      cleanName || null,
-      cleanPhone !== undefined,
-      cleanPhone ?? null,
-    ],
-  )
+export async function updateUserProfile(userId, patch = {}) {
+  assertMongoAuth()
+  const updates = { updatedAt: new Date() }
+  if (patch.name != null) updates.name = sanitizeName(patch.name)
+  if (patch.phone != null) updates.phone = normalizePhone(patch.phone)
+  await col('users').updateOne({ _id: String(userId) }, { $set: updates })
   const row = await findUserById(userId)
-  await ensureTenantForUser(row)
-  return mapUser(row)
+  const user = mapUser(row)
+  await ensureTenantForUser(user)
+  return user
+}
+
+export async function signInWithDetails({ name, email, phone }) {
+  const existing = await findUserByEmail(normalizeEmail(email))
+  if (existing) return loginWithEmailPhone({ email, phone })
+  return registerUser({ name, email, phone })
+}
+
+export async function authenticateUser(input) {
+  return loginWithEmailPhone(input)
 }
 
 export { mapUser, mapSubscription, normalizeEmail, normalizePhone, sanitizeName }

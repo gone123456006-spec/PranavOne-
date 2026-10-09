@@ -1,12 +1,5 @@
-# Render Blueprint — BizVyapar API + keep-alive cron + Postgres
+# Render Blueprint — BizVyapar API + keep-alive cron
 # Docs: https://render.com/docs/blueprint-spec
-
-databases:
-  - name: bizvyapar-db
-    plan: free
-    region: singapore
-    databaseName: bizvyapar
-    user: bizvyapar
 
 services:
   - type: web
@@ -28,14 +21,6 @@ services:
         value: 0.0.0.0
       - key: WORKSHOP_AMOUNT_PAISE
         value: "100"
-      - key: REMINDERS_ENABLED
-        value: "true"
-      - key: PGSSL
-        value: "true"
-      - key: DATABASE_URL
-        fromDatabase:
-          name: bizvyapar-db
-          property: connectionString
       - key: MONGODB_URI
         sync: false
       - key: MONGODB_DB
@@ -44,12 +29,6 @@ services:
         sync: false
       # Fill these in Render Dashboard → Environment (or paste the block from chat)
       - key: CORS_ORIGIN
-        sync: false
-      - key: RAZORPAY_KEY_ID
-        sync: false
-      - key: RAZORPAY_KEY_SECRET
-        sync: false
-      - key: RAZORPAY_WEBHOOK_SECRET
         sync: false
       - key: WEBINAR_LINK
         sync: false
@@ -73,14 +52,6 @@ services:
         value: BizVyapar
       - key: SMTP_FROM_NAME
         value: BizVyapar
-      - key: FIREBASE_PROJECT_ID
-        sync: false
-      - key: FIREBASE_CLIENT_EMAIL
-        sync: false
-      - key: FIREBASE_PRIVATE_KEY
-        sync: false
-      - key: LIFETIME_GRANT_EMAILS
-        sync: false
       - key: ADMIN_DASHBOARD_NAME
         value: TredsDash
       - key: ADMIN_PASSWORD

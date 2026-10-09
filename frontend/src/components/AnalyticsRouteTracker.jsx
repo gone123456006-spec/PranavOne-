@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
-import { initAnalytics, trackPageView, trackMetaPageView } from '../lib/analytics.js'
+import { trackMetaPageView } from '../lib/analytics.js'
 import { trackSiteEngage, trackSitePageView } from '../lib/visitorTracking.js'
 
 const PAGE_TITLES = {
@@ -16,17 +16,12 @@ export default function AnalyticsRouteTracker() {
   const engagedRef = useRef(false)
 
   useEffect(() => {
-    void initAnalytics()
-  }, [])
-
-  useEffect(() => {
     if (location.pathname.startsWith('/tredsdash') || location.pathname.startsWith('/admin')) {
       return undefined
     }
 
     const path = `${location.pathname}${location.search}`
     const title = PAGE_TITLES[location.pathname] || document.title
-    void trackPageView(path, title)
     trackMetaPageView()
     void trackSitePageView({ path, title })
 

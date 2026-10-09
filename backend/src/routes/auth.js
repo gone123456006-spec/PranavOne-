@@ -17,6 +17,7 @@ import {
   linkVisitorToTenant,
   recordUserLoginSession,
 } from '../db/analyticsStore.js'
+import { isMongoEnabled } from '../db/mongo.js'
 
 export const authRouter = Router()
 
@@ -99,11 +100,7 @@ authRouter.get('/status', (_req, res) => {
     provider: 'name-email-phone',
     passwordRequired: false,
     passwordAuth: false,
-    database: process.env.MONGODB_URI
-      ? 'mongodb'
-      : process.env.DATABASE_URL
-        ? 'postgres'
-        : 'none',
+    database: isMongoEnabled() ? 'mongodb' : 'none',
     modes: {
       signUp: 'name + gmail + mobile (create account)',
       signIn: 'gmail + mobile (existing account)',

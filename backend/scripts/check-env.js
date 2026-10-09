@@ -15,11 +15,11 @@ console.log(
     {
       ready: runtime.ready,
       checks: {
-        razorpay: runtime.razorpay,
         email: runtime.email,
-        firebase: runtime.firebase,
         webinarLink: runtime.webinarLink,
         cors: runtime.cors,
+        database: runtime.database,
+        authJwt: runtime.authJwt,
       },
       missing: runtime.missing,
     },

@@ -1,7 +1,7 @@
 /**
- * MongoDB Atlas connection for BizVyapar durable data.
- * Uses Atlas Stable API (same options as Atlas “Connect” sample).
- * Set MONGODB_URI in env (never commit the real URI).
+ * MongoDB connection for BizVyapar durable data.
+ * Uses the Stable API (same options as the Atlas “Connect” sample).
+ * Set MONGODB_URI (and optionally MONGODB_DB) in env — never commit the real URI.
  */
 import { MongoClient, ServerApiVersion } from 'mongodb'
 
@@ -139,12 +139,6 @@ async function ensureMongoIndexes(database) {
       { key: { tenantId: 1 }, unique: true, name: 'profiles_tenant_unique' },
       { key: { email: 1 }, name: 'profiles_email' },
       { key: { uid: 1 }, name: 'profiles_uid' },
-    ]),
-    database.collection('payments').createIndexes([
-      { key: { paymentId: 1 }, unique: true, name: 'payments_payment_id_unique' },
-      { key: { tenantId: 1 }, name: 'payments_tenant' },
-      { key: { userId: 1 }, name: 'payments_user' },
-      { key: { email: 1 }, name: 'payments_email' },
     ]),
     database.collection('registrations').createIndexes([
       {

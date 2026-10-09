@@ -33,9 +33,6 @@ export function getAllowedOrigins() {
 }
 
 export function getRuntimeStatus() {
-  const razorpay = Boolean(
-    process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET,
-  )
   const email = Boolean(
     (process.env.SMTP_USER || process.env.BREVO_SMTP_LOGIN || process.env.GMAIL_USER) &&
       (process.env.SMTP_PASS ||
@@ -44,29 +41,27 @@ export function getRuntimeStatus() {
         process.env.GMAIL_APP_PASSWORD) &&
       (process.env.SMTP_FROM || process.env.SMTP_FROM_EMAIL || process.env.EMAIL_FROM),
   )
-  const firebase = Boolean(process.env.FIREBASE_PROJECT_ID)
   const webinarLink = Boolean(String(process.env.WEBINAR_LINK || '').trim())
   const cors = getAllowedOrigins().length > 0
-  const database = Boolean(String(process.env.DATABASE_URL || '').trim())
+  const database = Boolean(
+    String(process.env.MONGODB_URI || process.env.MONGO_URI || '').trim(),
+  )
   const authJwt = Boolean(String(process.env.AUTH_JWT_SECRET || '').trim())
 
   const missing = []
-  if (!razorpay) missing.push('RAZORPAY_KEY_ID/RAZORPAY_KEY_SECRET')
   if (!email) missing.push('SMTP_USER/SMTP_PASS')
   if (!webinarLink) missing.push('WEBINAR_LINK')
   if (!cors) missing.push('CORS_ORIGIN')
-  if (!database) missing.push('DATABASE_URL')
+  if (!database) missing.push('MONGODB_URI')
   if (!authJwt) missing.push('AUTH_JWT_SECRET')
 
   return {
-    razorpay,
     email,
-    firebase,
     webinarLink,
     cors,
     database,
     authJwt,
-    ready: razorpay && email && webinarLink && cors && database && authJwt,
+    ready: email && webinarLink && cors && database && authJwt,
     missing,
   }
 }

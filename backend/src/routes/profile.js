@@ -34,9 +34,7 @@ profileRouter.get('/me', requireAuth, async (req, res, next) => {
         label: subscription.label,
       },
       summary: {
-        paymentCount: own.paymentCount,
         registrationCount: own.registrationCount,
-        latestPayment: own.latestPayment,
         latestRegistration: own.latestRegistration,
       },
       isolation: {

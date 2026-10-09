@@ -286,109 +286,6 @@ function pad2(value) {
   return String(value).padStart(2, '0')
 }
 
-function loadRazorpayScript() {
-  return new Promise((resolve, reject) => {
-    if (window.Razorpay) {
-      resolve(window.Razorpay)
-      return
-    }
-
-    const existing = document.querySelector('script[data-razorpay="1"]')
-    if (existing) {
-      if (window.Razorpay) {
-        resolve(window.Razorpay)
-        return
-      }
-      existing.addEventListener('load', () => {
-        if (window.Razorpay) resolve(window.Razorpay)
-        else reject(new Error('Razorpay script loaded but checkout is unavailable.'))
-      }, { once: true })
-      existing.addEventListener(
-        'error',
-        () =>
-          reject(
-            new Error(
-              'Failed to load Razorpay checkout. Disable ad-block, or try another browser.',
-            ),
-          ),
-        { once: true },
-      )
-      return
-    }
-
-    const script = document.createElement('script')
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
-    script.async = true
-    script.crossOrigin = 'anonymous'
-    script.dataset.razorpay = '1'
-
-    const timeout = window.setTimeout(() => {
-      reject(new Error('Razorpay checkout timed out. Check your internet and try again.'))
-    }, 15000)
-
-    script.onload = () => {
-      window.clearTimeout(timeout)
-      if (window.Razorpay) resolve(window.Razorpay)
-      else reject(new Error('Razorpay script loaded but checkout is unavailable.'))
-    }
-    script.onerror = () => {
-      window.clearTimeout(timeout)
-      reject(
-        new Error(
-          'Failed to load Razorpay checkout. Disable ad-block, or try another browser.',
-        ),
-      )
-    }
-    document.body.appendChild(script)
-  })
-}
-
-async function createPaymentOrder(lead) {
-  const token = await getAccessToken()
-  if (!token) {
-    throw new Error('Please create an account or sign in to continue payment.')
-  }
-
-  let orderRes
-  try {
-    orderRes = await fetch(apiUrl('/api/payments/create-order'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(lead),
-    })
-  } catch {
-    throw new Error(
-      'Could not reach payment server. Confirm VITE_API_BASE_URL and Render API are online.',
-    )
-  }
-
-  let orderData = {}
-  try {
-    orderData = await orderRes.json()
-  } catch {
-    orderData = {}
-  }
-
-  if (!orderRes.ok) {
-    const error = new Error(
-      orderData.message || `Could not start payment (${orderRes.status}).`,
-    )
-    error.status = orderRes.status
-    error.alreadySubscribed = Boolean(orderData.alreadySubscribed)
-    error.subscription = orderData.subscription || null
-    throw error
-  }
-
-  if (!orderData.orderId || !orderData.keyId) {
-    throw new Error('Payment order response was incomplete. Check Razorpay keys on Render.')
-  }
-
-  return orderData
-}
-
 function FieldIcon({ filled, children }) {
   if (filled) {
     return <CheckIcon className="pill-check" />
@@ -424,7 +321,6 @@ export default function App() {
   const [countdown, setCountdown] = useState(() =>
     getCountdownParts(getNextWorkshopSunday()),
   )
-  const pendingOrderRef = useRef(null)
   const siteHeaderRef = useRef(null)
   const [profileMenuTop, setProfileMenuTop] = useState(118)
 
@@ -462,11 +358,9 @@ export default function App() {
         return false
       }
 
-      let latest = null
       let profile = null
       if (profileRes.ok) {
         const data = await profileRes.json()
-        latest = data.summary?.latestPayment || null
         profile = data.profile || null
       }
 
@@ -479,8 +373,7 @@ export default function App() {
         name: paidName,
         email: paidEmail,
         phone: paidPhone,
-        webinarLink:
-          latest?.webinarLink || publicSettings.webinarLink || null,
+        webinarLink: publicSettings.webinarLink || null,
         emailSent: true,
         emailError: null,
         subscriptionType: subscription?.plan || 'lifetime',
@@ -530,7 +423,6 @@ export default function App() {
     setJoinStep('details')
     setStatus('idle')
     setMessage('')
-    pendingOrderRef.current = null
     void refreshProfile()
     void refreshSubscription()
   }
@@ -585,13 +477,6 @@ export default function App() {
       setShowJoinForm(true)
     }
   }, [])
-
-  useEffect(() => {
-    if (!showJoinForm) return undefined
-    if (subscriptionActive) return undefined
-    loadRazorpayScript().catch(() => {})
-    return undefined
-  }, [showJoinForm, subscriptionActive])
 
   // After Sign In / success popup is shown, auto-hide and return to main screen
   useEffect(() => {
@@ -689,24 +574,10 @@ export default function App() {
     if (event) event.preventDefault()
     setShowProfileMenu(false)
     setMessage('')
-    pendingOrderRef.current = null
 
     if (user) {
       const paid = subscriptionActive || (await refreshSubscription())
-      if (paid) {
-        // Already subscribed — stay on main screen, no popup
-        setSubscriptionActive(true)
-        return
-      }
-      if (user.name) setName(user.name)
-      if (user.email) setEmail(user.email)
-      if (user.phone) {
-        setPhone(String(user.phone).replace(/\D/g, '').slice(-10))
-      }
-      setJoinStep('payment')
-      setStatus('idle')
-      setSubmitted(null)
-      setShowJoinForm(true)
+      if (paid) setSubscriptionActive(true)
       return
     }
 
@@ -721,24 +592,10 @@ export default function App() {
     if (event) event.preventDefault()
     setShowProfileMenu(false)
     setMessage('')
-    pendingOrderRef.current = null
 
     if (user) {
       const paid = subscriptionActive || (await refreshSubscription())
-      if (paid) {
-        // Already signed in + subscribed — stay on main screen
-        setSubscriptionActive(true)
-        return
-      }
-      if (user.name) setName(user.name)
-      if (user.email) setEmail(user.email)
-      if (user.phone) {
-        setPhone(String(user.phone).replace(/\D/g, '').slice(-10))
-      }
-      setJoinStep('payment')
-      setStatus('idle')
-      setSubmitted(null)
-      setShowJoinForm(true)
+      if (paid) setSubscriptionActive(true)
       return
     }
 
@@ -774,7 +631,6 @@ export default function App() {
     setJoinStep(subscriptionActive ? 'success' : 'details')
     setStatus(subscriptionActive ? 'success' : 'idle')
     setMessage('')
-    pendingOrderRef.current = null
   }
 
   async function handleDetailsNext(event) {
@@ -833,231 +689,12 @@ export default function App() {
         activeUser.subscription?.status === 'active' &&
         activeUser.subscription?.plan === 'lifetime'
 
-      if (paid) {
-        finishAuthAndHidePopup({ paid: true, activeUser, digits })
-        return
-      }
-
-      // New / unpaid account → stay in popup on payment step
-      const lockedEmail = (activeUser.email || email).trim()
-      const lockedName = (activeUser.name || name).trim()
-      setEmail(lockedEmail)
-      if (lockedName) setName(lockedName)
-      if (activeUser.phone) {
-        setPhone(String(activeUser.phone).replace(/\D/g, '').slice(-10))
-      }
-      setStatus('idle')
-      setMessage('')
-      setJoinStep('payment')
-      setShowJoinForm(true)
-      pendingOrderRef.current = createPaymentOrder({
-        name: lockedName || name.trim(),
-        email: lockedEmail,
-        phone: digits || activeUser.phone || '',
-      })
-      void refreshProfile()
-      void refreshSubscription()
+      finishAuthAndHidePopup({ paid, activeUser, digits })
     } catch (err) {
       setStatus('error')
       setMessage(
         err.message || 'Could not continue. Please try again.',
       )
-    }
-  }
-
-  async function handlePayNow(event) {
-    event.preventDefault()
-    if (subscriptionActive) {
-      openPaidLinksPopup()
-      return
-    }
-    setStatus('loading')
-    setMessage('')
-
-    try {
-      const activeUser = user
-      if (!activeUser) {
-        setStatus('error')
-        setMessage('Please create an account or sign in first.')
-        setJoinStep('details')
-        return
-      }
-
-      const payName = (name || activeUser.name || '').trim()
-      const payEmail = (activeUser.email || email || '').trim()
-      const payPhone = phone.trim() || activeUser.phone || ''
-
-      if (activeUser.email && activeUser.email !== email) {
-        setEmail(activeUser.email)
-      }
-      if (activeUser.name && !name.trim()) {
-        setName(activeUser.name)
-      }
-
-      const [RazorpayCheckout, orderData] = await Promise.all([
-        loadRazorpayScript(),
-        createPaymentOrder({ name: payName, email: payEmail, phone: payPhone }),
-      ])
-
-      pendingOrderRef.current = Promise.resolve(orderData)
-      const keyId = orderData.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID
-
-      if (!keyId) {
-        throw new Error('Razorpay key is missing.')
-      }
-
-      const rzp = new RazorpayCheckout({
-        key: keyId,
-        amount: orderData.amount,
-        currency: orderData.currency || 'INR',
-        name: 'BizVyapar',
-        description: 'Live 30-Min Workshop',
-        order_id: orderData.orderId,
-        prefill: {
-          name: orderData.name,
-          email: orderData.email,
-          contact: orderData.phone,
-        },
-        notes: {
-          product: 'Live 30-Min Workshop',
-        },
-        theme: {
-          color: '#006b3c',
-        },
-        handler: (response) => {
-          const paymentId = response?.razorpay_payment_id || ''
-          const fallbackLink = String(
-            publicSettings.webinarLink ||
-              import.meta.env.VITE_WEBINAR_LINK ||
-              '',
-          ).trim()
-
-          // Show webinar success popup instantly — don't wait on verify/email.
-          pendingOrderRef.current = null
-          setSubscriptionActive(true)
-          setSubmitted({
-            name: payName,
-            email: payEmail,
-            phone: payPhone,
-            webinarLink: fallbackLink || null,
-            emailSent: false,
-            emailError: null,
-            paymentId,
-          })
-          setJoinStep('success')
-          setStatus('success')
-          setMessage(
-            'Your payment is done. Now you are in for the Webinar.',
-          )
-
-          // Confirm on server in background; update link/email when ready.
-          void (async () => {
-            try {
-              const token = await getAccessToken()
-              if (!token) {
-                setSubmitted((prev) => ({
-                  ...(prev || {}),
-                  emailError:
-                    'Could not confirm payment session. Use the join button below.',
-                }))
-                return
-              }
-
-              const verifyRes = await fetch(apiUrl('/api/payments/verify'), {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                  name: payName,
-                  email: payEmail,
-                  phone: payPhone,
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature,
-                }),
-              })
-
-              let verifyData = {}
-              try {
-                verifyData = await verifyRes.json()
-              } catch {
-                verifyData = {}
-              }
-
-              if (!verifyRes.ok) {
-                setSubmitted((prev) => ({
-                  ...(prev || {}),
-                  emailError:
-                    verifyData.message ||
-                    'Payment confirmed, but email could not be verified yet.',
-                }))
-                return
-              }
-
-              setSubmitted((prev) => ({
-                ...(prev || {}),
-                name: payName,
-                email: payEmail,
-                phone: payPhone,
-                webinarLink:
-                  verifyData.webinarLink || prev?.webinarLink || fallbackLink || null,
-                emailSent: Boolean(verifyData.emailSent),
-                emailError: verifyData.emailError || null,
-                paymentId,
-                subscriptionType:
-                  verifyData.subscription?.type ||
-                  verifyData.subscriptionType ||
-                  'lifetime',
-              }))
-              if (verifyData.message) setMessage(verifyData.message)
-              setSubscriptionActive(true)
-              void refreshSubscription()
-            } catch (error) {
-              console.warn('[payments] background verify failed', error)
-              setSubmitted((prev) => ({
-                ...(prev || {}),
-                emailError:
-                  'Could not reach the server to send Gmail. Use the join button below.',
-              }))
-            }
-          })()
-        },
-        modal: {
-          ondismiss: () => {
-            setStatus('idle')
-            setMessage('')
-          },
-        },
-      })
-
-      rzp.on('payment.failed', (response) => {
-        setStatus('error')
-        setMessage(
-          response?.error?.description ||
-            response?.error?.reason ||
-            'Payment failed. Please try again.',
-        )
-      })
-
-      rzp.open()
-      setStatus('idle')
-    } catch (error) {
-      if (
-        error.alreadySubscribed ||
-        error.status === 409 ||
-        String(error.message || '').toLowerCase().includes('permanent lifetime') ||
-        String(error.message || '').toLowerCase().includes('already have')
-      ) {
-        setSubscriptionActive(true)
-        void refreshSubscription()
-        openPaidLinksPopup()
-        return
-      }
-      pendingOrderRef.current = null
-      setStatus('error')
-      setMessage(error.message || 'Could not complete payment. Please try again.')
     }
   }
 
@@ -1804,8 +1441,7 @@ export default function App() {
                     </p>
                   ) : null}
                   <p className="join-sub">
-                    {message ||
-                      'Your payment is done. Now you are in for the Webinar.'}
+                    {message || 'Now you are in for the Webinar.'}
                   </p>
 
                   {submitted.emailSent ? (
@@ -1852,93 +1488,6 @@ export default function App() {
                     Join WhatsApp channel
                   </a>
                 </div>
-              ) : joinStep === 'payment' ? (
-                <>
-                  <h2 id="join-form-title">Complete payment</h2>
-                  <p className="join-sub">
-                    Pay securely to confirm your webinar seat.
-                  </p>
-
-                  <div className="payment-illustration-wrap">
-                    <img
-                      className="payment-illustration"
-                      src="/images/payment.png?v=2"
-                      alt=""
-                      aria-hidden="true"
-                    />
-                  </div>
-
-                  <div className="payment-summary">
-                    <ul className="payment-perks">
-                      <li>
-                        <span>All Upcoming Webinar</span>
-                        <CheckIcon className="payment-perk-check" />
-                      </li>
-                      <li>
-                        <span>1-to-1 Mentorship</span>
-                        <CheckIcon className="payment-perk-check" />
-                      </li>
-                      <li>
-                        <span>Business Learning</span>
-                        <CheckIcon className="payment-perk-check" />
-                      </li>
-                      <li>
-                        <span>Invoice Financing Support</span>
-                        <CheckIcon className="payment-perk-check" />
-                      </li>
-                      <li>
-                        <span>Access Till Programme Ends</span>
-                        <CheckIcon className="payment-perk-check" />
-                      </li>
-                    </ul>
-
-                    <div className="payment-total">
-                      <span>Live 30-Min Workshop</span>
-                      <strong>{amountLabel}</strong>
-                    </div>
-                  </div>
-
-                  {status === 'error' && (
-                    <p className="form-error" role="alert">
-                      {message}
-                    </p>
-                  )}
-
-                  <p className="payment-recipient">
-                    Payment Partner <strong>RECUIT PLUS PVT LTD.</strong>
-                  </p>
-
-                  <button
-                    className="btn-trial"
-                    type="button"
-                    onClick={handlePayNow}
-                    disabled={status === 'loading' || signingIn}
-                  >
-                    {status === 'loading' || signingIn
-                      ? message?.includes('Confirming')
-                        ? 'Confirming payment…'
-                        : 'Please wait…'
-                      : 'Pay Now · Join'}
-                  </button>
-
-                  <p className="form-note">
-                    Secure payment · Instant confirmation
-                  </p>
-
-                  <button
-                    className="btn-back"
-                    type="button"
-                    onClick={() => {
-                      setStatus('idle')
-                      setMessage('')
-                      pendingOrderRef.current = null
-                      setJoinStep('details')
-                    }}
-                    disabled={status === 'loading'}
-                  >
-                    ← Back to details
-                  </button>
-                </>
               ) : (
                 <>
                   <h2 id="join-form-title">
