@@ -1,5 +1,20 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
+  CheckCircle,
+  Crown,
+  Eye,
+  FileArrowDown,
+  GearSix,
+  Globe,
+  List,
+  PhoneCall,
+  Pulse,
+  SignOut,
+  SquaresFour,
+  UserPlus,
+  Users,
+} from '@phosphor-icons/react'
+import {
   adminFetch,
   clearAdminToken,
   getAdminToken,
@@ -13,24 +28,28 @@ import {
   UserDetailSection,
   VisitorsSection,
 } from './tredsdash/sections.jsx'
+import { SalesSection } from './tredsdash/sales.jsx'
 import './TredsDash.css'
 
 const NAV = [
-  { id: 'overview', label: 'Overview', group: 'Dashboard' },
-  { id: 'users', label: 'Registered Users', group: 'Users' },
-  { id: 'active-users', label: 'Active Users', group: 'Users' },
-  { id: 'subscribers', label: 'Subscribed Users', group: 'Users' },
-  { id: 'visitors', label: 'Visitor Overview', group: 'Visitors' },
-  { id: 'reports', label: 'Exports', group: 'Reports' },
-  { id: 'settings', label: 'Settings', group: 'Settings' },
+  { id: 'overview', label: 'Overview', group: 'Dashboard', icon: SquaresFour },
+  { id: 'sales-add', label: 'Add Lead', group: 'Sales', icon: UserPlus },
+  { id: 'sales-followup', label: 'Follow-ups', group: 'Sales', icon: PhoneCall },
+  { id: 'sales-converted', label: 'Converted', group: 'Sales', icon: CheckCircle },
+  { id: 'users', label: 'Registered Users', group: 'Users', icon: Users },
+  { id: 'active-users', label: 'Active Users', group: 'Users', icon: Pulse },
+  { id: 'subscribers', label: 'Subscribed Users', group: 'Users', icon: Crown },
+  { id: 'visitors', label: 'Visitors', group: 'Website', icon: Eye },
+  { id: 'reports', label: 'Exports', group: 'Website', icon: FileArrowDown },
+  { id: 'settings', label: 'Settings', group: 'Website', icon: GearSix },
 ]
 
 const BOTTOM = [
-  { id: 'overview', label: 'Home' },
-  { id: 'users', label: 'Users' },
-  { id: 'subscribers', label: 'Paid' },
-  { id: 'visitors', label: 'Visitors' },
-  { id: 'settings', label: 'Settings' },
+  { id: 'overview', label: 'Home', icon: SquaresFour },
+  { id: 'sales-add', label: 'Add Lead', icon: UserPlus },
+  { id: 'sales-followup', label: 'Follow-ups', icon: PhoneCall },
+  { id: 'sales-converted', label: 'Converted', icon: CheckCircle },
+  { id: 'users', label: 'Users', icon: Users },
 ]
 
 export default function TredsDash() {
@@ -106,10 +125,10 @@ export default function TredsDash() {
     return (
       <div className="td-shell td-shell--login">
         <form className="td-card td-login-card" onSubmit={handleLogin}>
-          <p className="td-kicker">BizVyapar Admin</p>
-          <h1>TredsDash</h1>
+          <img className="td-login-logo" src="/images/pranavone-logo-green.png" alt="Pranav One" />
+          <h1>Admin sign in</h1>
           <p className="td-muted">
-            Manage users, visitors, analytics, webinar link, and subscription price.
+            Manage sales leads, registered users, visitors and site settings.
           </p>
           <label className="td-label" htmlFor="td-password">
             Password
@@ -129,7 +148,7 @@ export default function TredsDash() {
             </p>
           ) : null}
           <button className="td-btn td-btn--primary" type="submit">
-            Enter TredsDash
+            Sign in
           </button>
         </form>
       </div>
@@ -140,21 +159,24 @@ export default function TredsDash() {
     <div className={`td-app ${navOpen ? 'td-app--nav-open' : ''}`}>
       <aside className="td-sidebar" aria-label="TredsDash navigation">
         <div className="td-sidebar-brand">
-          <p className="td-kicker">BizVyapar</p>
-          <h1>TredsDash</h1>
+          <img src="/images/pranavone-logo-green.png" alt="Pranav One" />
+          <span>Admin</span>
         </div>
         <nav className="td-nav">
           {NAV.map((item, index) => {
             const prev = NAV[index - 1]
             const showGroup = !prev || prev.group !== item.group
+            const Icon = item.icon
+            const active = section === item.id
             return (
               <div key={item.id}>
                 {showGroup ? <p className="td-nav-group">{item.group}</p> : null}
                 <button
                   type="button"
-                  className={`td-nav-item ${section === item.id ? 'is-active' : ''}`}
+                  className={`td-nav-item ${active ? 'is-active' : ''}`}
                   onClick={() => go(item.id)}
                 >
+                  <Icon size={20} weight={active ? 'fill' : 'regular'} aria-hidden="true" />
                   {item.label}
                 </button>
               </div>
@@ -162,10 +184,12 @@ export default function TredsDash() {
           })}
         </nav>
         <div className="td-sidebar-foot">
-          <a className="td-link" href="/">
+          <a className="td-nav-item" href="/">
+            <Globe size={20} aria-hidden="true" />
             View website
           </a>
-          <button type="button" className="td-btn td-btn--ghost" onClick={logout}>
+          <button type="button" className="td-nav-item" onClick={logout}>
+            <SignOut size={20} aria-hidden="true" />
             Sign out
           </button>
         </div>
@@ -188,18 +212,17 @@ export default function TredsDash() {
             aria-label="Open menu"
             onClick={() => setNavOpen(true)}
           >
-            ☰
+            <List size={22} weight="bold" aria-hidden="true" />
           </button>
           <div className="td-topbar-copy">
-            <p className="td-kicker">BizVyapar Admin</p>
-            <strong>TredsDash</strong>
+            <strong>{NAV.find((n) => n.id === section)?.label || 'TredsDash'}</strong>
           </div>
           <div className="td-topbar-actions">
-            <a className="td-link td-link--dark" href="/">
-              Website
+            <a className="td-icon-btn" href="/" aria-label="View website">
+              <Globe size={20} aria-hidden="true" />
             </a>
-            <button type="button" className="td-btn td-btn--ghost td-btn--compact" onClick={logout}>
-              Sign out
+            <button type="button" className="td-icon-btn" onClick={logout} aria-label="Sign out">
+              <SignOut size={20} aria-hidden="true" />
             </button>
           </div>
         </header>
@@ -211,6 +234,15 @@ export default function TredsDash() {
               tenantId={selectedUserId}
               onBack={() => setSelectedUserId(null)}
               onAuthError={onAuthError}
+            />
+          ) : null}
+
+          {!selectedUserId && section.startsWith('sales-') ? (
+            <SalesSection
+              token={token}
+              onAuthError={onAuthError}
+              stage={section}
+              onGo={go}
             />
           ) : null}
 
@@ -259,16 +291,21 @@ export default function TredsDash() {
       </div>
 
       <nav className="td-bottom-nav" aria-label="Mobile navigation">
-        {BOTTOM.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={section === item.id ? 'is-active' : ''}
-            onClick={() => go(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
+        {BOTTOM.map((item) => {
+          const Icon = item.icon
+          const active = section === item.id
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={active ? 'is-active' : ''}
+              onClick={() => go(item.id)}
+            >
+              <Icon size={22} weight={active ? 'fill' : 'regular'} aria-hidden="true" />
+              <span>{item.label}</span>
+            </button>
+          )
+        })}
       </nav>
     </div>
   )

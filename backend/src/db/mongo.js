@@ -154,6 +154,12 @@ async function ensureMongoIndexes(database) {
     database.collection('activity').createIndexes([
       { key: { tenantId: 1, at: -1 }, name: 'activity_tenant_at' },
     ]),
+    database.collection('leads').createIndexes([
+      { key: { phone: 1 }, unique: true, name: 'leads_phone_unique' },
+      { key: { status: 1, updatedAt: -1 }, name: 'leads_status_updated' },
+      { key: { status: 1, reminderAt: 1 }, name: 'leads_status_reminder' },
+      { key: { convertedAt: -1 }, name: 'leads_converted_at' },
+    ]),
     database.collection('analytics_sessions').createIndexes([
       { key: { sessionId: 1 }, name: 'analytics_session_id' },
       { key: { tenantId: 1 }, name: 'analytics_tenant' },

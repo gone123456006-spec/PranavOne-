@@ -3,6 +3,7 @@
  * userId (UUID) is the permanent identity — never derived from name/email/phone.
  */
 import { randomUUID } from 'node:crypto'
+import { addWebsiteLead } from '../db/leadsStore.js'
 import { col, isMongoEnabled } from '../db/mongo.js'
 import {
   createRefreshTokenRaw,
@@ -383,6 +384,7 @@ export async function registerUser({ name, email, phone, location }) {
   })
   const tenantId = `uid_${user.id}`
   void ensureTenantForUser(user).catch(() => undefined)
+  void addWebsiteLead(user).catch(() => undefined)
 
   return {
     user,

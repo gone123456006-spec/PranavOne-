@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { MapPin } from '@phosphor-icons/react'
 import { adminFetch, downloadUsersExport, formatDate } from './adminApi.js'
 import { Pagination, SparkBars, StatCards } from './ui.jsx'
 
@@ -55,7 +56,7 @@ export function OverviewSection({ token, onAuthError }) {
       </div>
       {error ? <p className="td-error">{error}</p> : null}
       {overview?.analyticsNotConfigured ? (
-        <p className="td-error">Analytics storage is not connected yet.</p>
+        <p className="td-muted">Visitor tracking is not connected yet. User counts are live.</p>
       ) : null}
       <StatCards items={cards} />
       <div className="td-grid-2">
@@ -153,7 +154,7 @@ export function RegisteredUsersSection({
         <div>
           <h2>{title}</h2>
           <p className="td-muted">
-            {subtitle || `${data.total || 0} signed-in accounts`}
+            {subtitle || `${data.total || 0} Get Started form submissions`}
           </p>
         </div>
         <button type="button" className="td-btn td-btn--ghost" onClick={() => void load()}>
@@ -232,6 +233,10 @@ export function RegisteredUsersSection({
               <strong>{user.name || '—'}</strong>
               <span>{user.email || '—'}</span>
               <span>{user.phone || 'No phone'}</span>
+              <span className="td-inline-icon">
+                <MapPin size={14} weight="fill" aria-hidden="true" />
+                {user.location || 'No location'}
+              </span>
               <span
                 className={
                   user.subscriptionStatus === 'active'
@@ -254,10 +259,6 @@ export function RegisteredUsersSection({
               </span>
               <span className="td-meta">Joined {formatDate(user.createdAt)}</span>
               <span className="td-meta">Last login {formatDate(user.lastLoginAt)}</span>
-              <span className="td-meta">
-                {user.loginCount || 0} logins · {user.lastDevice || '—'} /{' '}
-                {user.lastBrowser || '—'}
-              </span>
             </div>
           </button>
         ))}
@@ -320,13 +321,11 @@ export function UserDetailSection({ token, tenantId, onBack, onAuthError }) {
           <h3>Profile</h3>
           <dl className="td-dl">
             <div><dt>Phone</dt><dd>{u.phone || '—'}</dd></div>
+            <div><dt>Location</dt><dd>{u.location || '—'}</dd></div>
             <div><dt>Status</dt><dd>{u.status || '—'}</dd></div>
             <div><dt>Activity</dt><dd>{u.activityStatus}</dd></div>
             <div><dt>Registered</dt><dd>{formatDate(u.createdAt)}</dd></div>
             <div><dt>Last login</dt><dd>{formatDate(u.lastLoginAt)}</dd></div>
-            <div><dt>Logins</dt><dd>{u.loginCount || 0}</dd></div>
-            <div><dt>Device</dt><dd>{u.lastDevice || '—'}</dd></div>
-            <div><dt>Browser</dt><dd>{u.lastBrowser || '—'}</dd></div>
             <div>
               <dt>Subscription</dt>
               <dd>

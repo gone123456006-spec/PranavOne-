@@ -17,6 +17,15 @@ import {
   listVisitorsAdmin,
   refreshAnalyticsAggregates,
 } from '../db/analyticsStore.js'
+import {
+  createLead,
+  deleteLead,
+  getLeadStats,
+  listLeads,
+  logLeadCall,
+  syncWebsiteLeads,
+  updateLead,
+} from '../db/leadsStore.js'
 import { buildUsersExcelBuffer } from '../exportUsersExcel.js'
 import {
   formatAmountLabel,
@@ -176,6 +185,74 @@ adminRouter.get('/export/users.xlsx', requireAdmin, async (req, res, next) => {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
     res.setHeader('X-Export-Count', String(count))
     res.send(buffer)
+  } catch (error) {
+    next(error)
+  }
+})
+
+adminRouter.get('/leads', requireAdmin, async (req, res, next) => {
+  try {
+    const data = await listLeads({
+      stage: req.query.stage,
+      status: req.query.status,
+      q: req.query.q,
+      due: req.query.due === '1',
+      batch: req.query.batch,
+      page: req.query.page,
+      pageSize: req.query.pageSize,
+    })
+    res.json(data)
+  } catch (error) {
+    next(error)
+  }
+})
+
+adminRouter.get('/leads/stats', requireAdmin, async (_req, res, next) => {
+  try {
+    res.json({ stats: await getLeadStats() })
+  } catch (error) {
+    next(error)
+  }
+})
+
+adminRouter.post('/leads', requireAdmin, async (req, res, next) => {
+  try {
+    const lead = await createLead(req.body || {})
+    res.status(201).json({ lead })
+  } catch (error) {
+    next(error)
+  }
+})
+
+adminRouter.post('/leads/sync-website', requireAdmin, async (_req, res, next) => {
+  try {
+    res.json(await syncWebsiteLeads())
+  } catch (error) {
+    next(error)
+  }
+})
+
+adminRouter.post('/leads/:id/calls', requireAdmin, async (req, res, next) => {
+  try {
+    const lead = await logLeadCall(req.params.id, req.body || {})
+    res.json({ lead })
+  } catch (error) {
+    next(error)
+  }
+})
+
+adminRouter.patch('/leads/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const lead = await updateLead(req.params.id, req.body || {})
+    res.json({ lead })
+  } catch (error) {
+    next(error)
+  }
+})
+
+adminRouter.delete('/leads/:id', requireAdmin, async (req, res, next) => {
+  try {
+    res.json(await deleteLead(req.params.id))
   } catch (error) {
     next(error)
   }

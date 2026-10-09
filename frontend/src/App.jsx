@@ -18,7 +18,7 @@ const WHATSAPP_CHANNEL_URL =
 
 const EVENT_SPEAKER = {
   name: 'CA Shree Ram Raut',
-  role: 'Chartered Accountant | Ex-Deloitte | Founder, BizVyapar',
+  role: 'Chartered Accountant | Ex-Deloitte | Founder, Pranav One',
   photo: '/images/event-speaker.jpg',
 }
 
@@ -109,7 +109,7 @@ function StudentVideo({ video, index }) {
   )
 }
 
-// [feature, BizVyapar, YouTube, Other Platforms]
+// [feature, Pranav One, YouTube, Other Platforms]
 const COMPARE_ROWS = [
   ['Affordable', true, true, false],
   ['Live doubt solving', true, false, false],
@@ -186,7 +186,7 @@ function WhatsAppFloat() {
   const [open, setOpen] = useState(false)
   const phone = WHATSAPP_SUPPORT_PHONE
   const message =
-    'Welcome to BizVyapar (Powered by Finovert Support). How can I help you?'
+    'Welcome to Pranav One (Powered by Finovert Support). How can I help you?'
   const href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
 
   return (
@@ -198,7 +198,7 @@ function WhatsAppFloat() {
               <WhatsAppIcon />
             </span>
             <div>
-              <strong>BizVyapar Support</strong>
+              <strong>Pranav One Support</strong>
               <p>Powered by Finovert</p>
             </div>
             <button
@@ -211,7 +211,7 @@ function WhatsAppFloat() {
             </button>
           </div>
           <div className="wa-float-bubble">
-            <p>Welcome to BizVyapar (Powered by Finovert Support).</p>
+            <p>Welcome to Pranav One (Powered by Finovert Support).</p>
             <p>How can I help you?</p>
           </div>
           <a
@@ -280,7 +280,7 @@ function ChannelQrFloat() {
           className="qr-channel-screen"
           role="dialog"
           aria-modal="true"
-          aria-label="BizVyapar WhatsApp channel QR"
+          aria-label="Pranav One WhatsApp channel QR"
         >
           <button
             type="button"
@@ -293,15 +293,15 @@ function ChannelQrFloat() {
 
           <div className="qr-channel-card">
             <div className="qr-channel-logo-tab">
-              <img src="/images/logo.png?v=2" alt="BizVyapar" />
+              <img src="/images/pranavone-logo-green.png" alt="Pranav One" />
             </div>
-            <h2>Bizvyapar Tally + Computer Course</h2>
+            <h2>Pranav One Tally + Computer Course</h2>
             <p className="qr-channel-sub">WhatsApp channel</p>
             <div className="qr-channel-code-wrap">
               <img
                 className="qr-channel-code"
                 src={qrSrc}
-                alt="QR code for BizVyapar WhatsApp channel"
+                alt="QR code for Pranav One WhatsApp channel"
                 width={280}
                 height={280}
               />
@@ -326,34 +326,6 @@ function ChannelQrFloat() {
       ) : null}
     </div>
   )
-}
-
-/** Next Sunday at 5:00 PM local time. After that slot passes, rolls to the following Sunday. */
-function getNextWorkshopSunday(from = new Date()) {
-  const next = new Date(from)
-  next.setHours(17, 0, 0, 0)
-
-  const day = next.getDay() // 0 = Sunday
-  let addDays = (7 - day) % 7
-
-  if (addDays === 0 && from.getTime() >= next.getTime()) {
-    addDays = 7
-  }
-
-  next.setDate(next.getDate() + addDays)
-  return next
-}
-
-function formatWorkshopDay(date) {
-  return date.toLocaleDateString('en-IN', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'short',
-  })
-}
-
-function formatWorkshopLabel(date) {
-  return `${formatWorkshopDay(date)} · 5:00 PM`
 }
 
 const FAQ_ITEMS = [
@@ -400,21 +372,6 @@ const FAQ_ITEMS = [
 ]
 
 
-function getCountdownParts(target, now = new Date()) {
-  const totalMs = Math.max(0, target.getTime() - now.getTime())
-  const totalSeconds = Math.floor(totalMs / 1000)
-  const days = Math.floor(totalSeconds / 86400)
-  const hours = Math.floor((totalSeconds % 86400) / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-
-  return { days, hours, minutes, seconds, totalMs }
-}
-
-function pad2(value) {
-  return String(value).padStart(2, '0')
-}
-
 function FieldIcon({ filled, children }) {
   if (filled) {
     return <CheckIcon className="pill-check" />
@@ -454,10 +411,6 @@ export default function App() {
   const [joinStep, setJoinStep] = useState('details')
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [showAllFaqs, setShowAllFaqs] = useState(false)
-  const [nextWorkshop, setNextWorkshop] = useState(() => getNextWorkshopSunday())
-  const [countdown, setCountdown] = useState(() =>
-    getCountdownParts(getNextWorkshopSunday()),
-  )
   const siteHeaderRef = useRef(null)
   const [profileMenuTop, setProfileMenuTop] = useState(118)
 
@@ -627,24 +580,6 @@ export default function App() {
     }, 4000)
     return () => window.clearTimeout(timer)
   }, [showJoinForm, joinStep])
-
-  useEffect(() => {
-    function refreshWorkshop() {
-      const next = getNextWorkshopSunday()
-      setNextWorkshop(next)
-      setCountdown(getCountdownParts(next))
-    }
-
-    refreshWorkshop()
-
-    const tick = window.setInterval(() => {
-      const next = getNextWorkshopSunday()
-      setNextWorkshop(next)
-      setCountdown(getCountdownParts(next))
-    }, 1000)
-
-    return () => window.clearInterval(tick)
-  }, [])
 
   useEffect(() => {
     if (user?.email) {
@@ -860,16 +795,9 @@ export default function App() {
                   <span className="top-bar-sep" aria-hidden="true">
                     |
                   </span>
-                  Live session{' '}
-                  <strong>{formatWorkshopLabel(nextWorkshop)}</strong>
-                  <span className="top-bar-sep" aria-hidden="true">
-                    |
-                  </span>
-                  Starts in{' '}
-                  <strong>
-                    {countdown.days}D - {pad2(countdown.hours)}H -{' '}
-                    {pad2(countdown.minutes)}M - {pad2(countdown.seconds)}S
-                  </strong>
+                  <span className="top-bar-badge">Hurry up!</span>
+                  New batch starting from{' '}
+                  <strong>19 October</strong>
                   <span className="top-bar-sep" aria-hidden="true">
                     |
                   </span>
@@ -891,8 +819,8 @@ export default function App() {
           <a className="nav-brand" href="#top">
             <img
               className="brand-logo brand-logo--nav"
-              src="/images/logo.png?v=2"
-              alt="BizVyapar"
+              src="/images/pranavone-logo-green.png"
+              alt="Pranav One"
             />
           </a>
 
@@ -1070,7 +998,10 @@ export default function App() {
       <main id="top">
         <section className="hero">
           <div className="hero-copy">
-            <h1 id="hero-title">Learn Tally + Computer. Get Placed.</h1>
+            <h1 id="hero-title">
+              <span className="hero-title-line">Learn Tally + Computer.</span>{' '}
+              <span className="hero-title-line">Get Placed.</span>
+            </h1>
 
             <p className="hero-support">
               Master TallyPrime, GST and essential computer skills with 100%
@@ -1177,7 +1108,7 @@ export default function App() {
           id="compare"
           aria-labelledby="compare-title"
         >
-          <p className="compare-eyebrow">Why BizVyapar</p>
+          <p className="compare-eyebrow">Why Pranav One</p>
           <h2 id="compare-title">Compare &amp; Choose the Right Course</h2>
 
           <div className="compare-table-wrap">
@@ -1186,7 +1117,7 @@ export default function App() {
                 <tr>
                   <th scope="col">Features</th>
                   <th scope="col" className="compare-brand-col">
-                    <img src="/images/logo.png" alt="BizVyapar" />
+                    <img src="/images/pranavone-logo-green.png" alt="Pranav One" />
                   </th>
                   <th scope="col">YouTube</th>
                   <th scope="col">Other Platforms</th>
@@ -1316,7 +1247,7 @@ export default function App() {
         <section className="section treds-section" id="treds" aria-labelledby="treds-title">
           <div className="treds-banner">
             <header className="treds-header">
-              <h2 id="treds-title">From Learner to Job-Ready via BizVyapar</h2>
+              <h2 id="treds-title">From Learner to Job-Ready via Pranav One</h2>
               <p className="treds-subtitle">
                 From basic computer skills to a placed professional.
               </p>
@@ -1344,7 +1275,7 @@ export default function App() {
                   </svg>
                 </div>
                 <div className="treds-hub-core">
-                  <p className="treds-hub-label">BizVyapar</p>
+                  <p className="treds-hub-label">Pranav One</p>
                   <span className="treds-hub-circle">
                     <svg viewBox="0 0 24 24" fill="none">
                       <path
@@ -1458,8 +1389,8 @@ export default function App() {
               <a className="footer-brand" href="#top">
                 <img
                   className="brand-logo brand-logo--footer"
-                  src="/images/logo.png?v=2"
-                  alt="BizVyapar"
+                  src="/images/pranavone-logo-green.png"
+                  alt="Pranav One"
                 />
               </a>
               <p className="footer-tagline">
@@ -1470,7 +1401,7 @@ export default function App() {
 
           <div className="footer-bottom">
             <p className="footer-copy">
-              © {new Date().getFullYear()} BizVyapar. All rights reserved.
+              © {new Date().getFullYear()} Pranav One. All rights reserved.
             </p>
           </div>
         </div>
@@ -1678,7 +1609,7 @@ export default function App() {
                         onChange={(e) => setConsent(e.target.checked)}
                       />
                       <span>
-                        I authorise BizVyapar to contact me via
+                        I authorise Pranav One to contact me via
                         Email/SMS/WhatsApp/Call (even if on DND/NDNC).
                       </span>
                     </label>
