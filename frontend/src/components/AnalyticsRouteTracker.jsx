@@ -4,7 +4,7 @@ import { trackMetaPageView } from '../lib/analytics.js'
 import { trackSiteEngage, trackSitePageView } from '../lib/visitorTracking.js'
 
 const PAGE_TITLES = {
-  '/': 'BizVyapar — Join the free webinar waitlist',
+  '/': 'BizVyapar — Tally + Computer Course | 100% Placement Opportunities',
   '/terms': 'Terms & Conditions — BizVyapar',
   '/terms-and-conditions': 'Terms & Conditions — BizVyapar',
   '/tredsdash': 'TredsDash — BizVyapar Admin',
