@@ -16,7 +16,6 @@ const WHATSAPP_CHANNEL_URL =
   'https://whatsapp.com/channel/0029Vb8bHENHQbRzGerkML0N'
 
 const EVENT_SPEAKER = {
-  name: 'CA Shree Ram Raut',
   role: 'Chartered Accountant | Ex-Deloitte | Founder, Pranav One',
   photo: '/images/event-speaker.jpg',
 }
@@ -185,7 +184,7 @@ function WhatsAppFloat() {
   const [open, setOpen] = useState(false)
   const phone = WHATSAPP_SUPPORT_PHONE
   const message =
-    'Welcome to Pranav One (Powered by Finovert Support). How can I help you?'
+    'Hi Pranav One, I would like to know more about the course.'
   const href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
 
   return (
@@ -198,7 +197,7 @@ function WhatsAppFloat() {
             </span>
             <div>
               <strong>Pranav One Support</strong>
-              <p>Powered by Finovert</p>
+              <p>Typically replies within minutes</p>
             </div>
             <button
               type="button"
@@ -210,7 +209,7 @@ function WhatsAppFloat() {
             </button>
           </div>
           <div className="wa-float-bubble">
-            <p>Welcome to Pranav One (Powered by Finovert Support).</p>
+            <p>Welcome to Pranav One.</p>
             <p>How can I help you?</p>
           </div>
           <a
@@ -1187,7 +1186,6 @@ export default function App() {
                   <h3>
                     Masterclass: {event.lead} {event.rest}
                   </h3>
-                  <p className="event-speaker">{EVENT_SPEAKER.name}</p>
                   <p className="event-speaker-role">{EVENT_SPEAKER.role}</p>
 
                   <button

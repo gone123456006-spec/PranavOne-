@@ -29,7 +29,7 @@ services:
         sync: false
       # Fill these in Render Dashboard → Environment (or paste the block from chat)
       - key: CORS_ORIGIN
-        sync: false
+        value: https://www.pranavone.in,https://pranavone.in
       - key: ADMIN_DASHBOARD_NAME
         value: TredsDash
       - key: ADMIN_PASSWORD
@@ -54,4 +54,4 @@ services:
       - key: NODE_VERSION
         value: "20"
       - key: KEEPALIVE_URL
-        sync: false
+        value: https://pranavone-api.onrender.com/health
