@@ -6,6 +6,36 @@ import { isMongoEnabled } from './db/mongo.js'
 import { healthRouter } from './routes/health.js'
 import { apiRouter } from './routes/api.js'
 
+const TRUSTED_ROOT_DOMAINS = ['pranavone.in']
+
+function originHost(origin) {
+  try {
+    return new URL(origin).host.toLowerCase()
+  } catch {
+    return ''
+  }
+}
+
+function isOriginAllowed(origin, req, allowedOrigins) {
+  if (!origin) return true
+  if (allowedOrigins.length === 0 || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+    return true
+  }
+
+  const host = originHost(origin)
+  if (!host) return false
+
+  // The site and API can share one host (e.g. Vercel serving /api), whatever CORS_ORIGIN says.
+  const requestHost = String(req.headers['x-forwarded-host'] || req.headers.host || '')
+    .split(',')[0]
+    .trim()
+    .toLowerCase()
+  if (requestHost && host === requestHost) return true
+
+  const hostname = host.split(':')[0]
+  return TRUSTED_ROOT_DOMAINS.some((root) => hostname === root || hostname.endsWith(`.${root}`))
+}
+
 export function createApp() {
   const app = express()
 
@@ -13,30 +43,22 @@ export function createApp() {
 
   const allowedOrigins = getAllowedOrigins()
 
+  const baseCorsOptions = {
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }
+
   app.use(
-    cors({
-      origin(origin, callback) {
-        // Same-origin / server-to-server / curl (no Origin header)
-        if (!origin) {
-          callback(null, true)
-          return
-        }
+    cors((req, callback) => {
+      const origin = req.headers.origin
+      if (isOriginAllowed(origin, req, allowedOrigins)) {
+        callback(null, { ...baseCorsOptions, origin: true })
+        return
+      }
 
-        if (
-          allowedOrigins.length === 0 ||
-          allowedOrigins.includes('*') ||
-          allowedOrigins.includes(origin)
-        ) {
-          callback(null, true)
-          return
-        }
-
-        console.warn('[cors] blocked origin:', origin)
-        callback(new Error(`CORS blocked for origin: ${origin}`))
-      },
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
+      console.warn('[cors] blocked origin:', origin)
+      callback(new Error(`CORS blocked for origin: ${origin}`))
     }),
   )
 
