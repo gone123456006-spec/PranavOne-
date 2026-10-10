@@ -44,6 +44,8 @@ const NAV = [
   { id: 'settings', label: 'Settings', group: 'Website', icon: GearSix },
 ]
 
+const SALES_NAV = NAV.filter((item) => item.group === 'Sales')
+
 const BOTTOM = [
   { id: 'overview', label: 'Home', icon: SquaresFour },
   { id: 'sales-add', label: 'Add Lead', icon: UserPlus },
@@ -54,7 +56,9 @@ const BOTTOM = [
 
 export default function TredsDash() {
   const [token, setToken] = useState(() => getAdminToken())
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [role, setRole] = useState('')
   const [authError, setAuthError] = useState('')
   const [booting, setBooting] = useState(Boolean(token))
   const [navOpen, setNavOpen] = useState(false)
@@ -64,6 +68,7 @@ export default function TredsDash() {
   const logout = useCallback(() => {
     clearAdminToken()
     setToken('')
+    setRole('')
     setAuthError('')
     setSelectedUserId(null)
   }, [])
@@ -80,7 +85,8 @@ export default function TredsDash() {
     }
     void (async () => {
       try {
-        await adminFetch('/api/admin/session', { token })
+        const session = await adminFetch('/api/admin/session', { token })
+        setRole(session.role || 'admin')
         setBooting(false)
       } catch {
         logout()
@@ -95,15 +101,22 @@ export default function TredsDash() {
     try {
       const data = await adminFetch('/api/admin/login', {
         method: 'POST',
-        body: { password },
+        body: { username, password },
       })
       setAdminToken(data.token)
+      setRole(data.role || 'admin')
+      if (data.role === 'subadmin') setSection('sales-followup')
       setToken(data.token)
       setPassword('')
     } catch (error) {
       setAuthError(error.message || 'Login failed.')
     }
   }
+
+  const isSubAdmin = role === 'subadmin'
+  const nav = isSubAdmin ? SALES_NAV : NAV
+  const bottom = isSubAdmin ? SALES_NAV : BOTTOM
+  const visibleSection = isSubAdmin && !section.startsWith('sales-') ? 'sales-followup' : section
 
   function go(id) {
     setSection(id)
@@ -128,8 +141,21 @@ export default function TredsDash() {
           <img className="td-login-logo" src="/images/pranavone-logo-green.png" alt="Pranav One" />
           <h1>Admin sign in</h1>
           <p className="td-muted">
-            Manage sales leads, registered users, visitors and site settings.
+            Admins and the sales team sign in here.
           </p>
+          <label className="td-label" htmlFor="td-username">
+            Username
+          </label>
+          <input
+            id="td-username"
+            className="td-input"
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+            placeholder="admin"
+          />
           <label className="td-label" htmlFor="td-password">
             Password
           </label>
@@ -156,18 +182,20 @@ export default function TredsDash() {
   }
 
   return (
-    <div className={`td-app ${navOpen ? 'td-app--nav-open' : ''}`}>
+    <div
+      className={`td-app ${navOpen ? 'td-app--nav-open' : ''} ${visibleSection.startsWith('sales-') ? 'td-app--collapsed' : ''}`}
+    >
       <aside className="td-sidebar" aria-label="TredsDash navigation">
         <div className="td-sidebar-brand">
           <img src="/images/pranavone-logo-green.png" alt="Pranav One" />
-          <span>Admin</span>
+          <span>{isSubAdmin ? 'Sales' : 'Admin'}</span>
         </div>
         <nav className="td-nav">
-          {NAV.map((item, index) => {
-            const prev = NAV[index - 1]
+          {nav.map((item, index) => {
+            const prev = nav[index - 1]
             const showGroup = !prev || prev.group !== item.group
             const Icon = item.icon
-            const active = section === item.id
+            const active = visibleSection === item.id
             return (
               <div key={item.id}>
                 {showGroup ? <p className="td-nav-group">{item.group}</p> : null}
@@ -215,7 +243,8 @@ export default function TredsDash() {
             <List size={22} weight="bold" aria-hidden="true" />
           </button>
           <div className="td-topbar-copy">
-            <strong>{NAV.find((n) => n.id === section)?.label || 'TredsDash'}</strong>
+            <span className="td-topbar-app">{isSubAdmin ? 'Pranav One Sales' : 'Pranav One Admin'}</span>
+            <strong>{NAV.find((n) => n.id === visibleSection)?.label || 'TredsDash'}</strong>
           </div>
           <div className="td-topbar-actions">
             <a className="td-icon-btn" href="/" aria-label="View website">
@@ -228,7 +257,7 @@ export default function TredsDash() {
         </header>
 
         <main className="td-content">
-          {selectedUserId ? (
+          {!isSubAdmin && selectedUserId ? (
             <UserDetailSection
               token={token}
               tenantId={selectedUserId}
@@ -237,35 +266,36 @@ export default function TredsDash() {
             />
           ) : null}
 
-          {!selectedUserId && section.startsWith('sales-') ? (
+          {!selectedUserId && visibleSection.startsWith('sales-') ? (
             <SalesSection
               token={token}
               onAuthError={onAuthError}
-              stage={section}
+              stage={visibleSection}
               onGo={go}
+              canDelete={!isSubAdmin}
             />
           ) : null}
 
-          {!selectedUserId && section === 'overview' ? (
+          {!isSubAdmin && !selectedUserId && visibleSection === 'overview' ? (
             <OverviewSection token={token} onAuthError={onAuthError} />
           ) : null}
 
-          {!selectedUserId && (section === 'users' || section === 'active-users') ? (
+          {!isSubAdmin && !selectedUserId && (visibleSection === 'users' || visibleSection === 'active-users') ? (
             <RegisteredUsersSection
               token={token}
               onAuthError={onAuthError}
               onOpenUser={setSelectedUserId}
-              initialStatus={section === 'active-users' ? 'active' : 'all'}
-              title={section === 'active-users' ? 'Active Users' : 'Registered Users'}
+              initialStatus={visibleSection === 'active-users' ? 'active' : 'all'}
+              title={visibleSection === 'active-users' ? 'Active Users' : 'Registered Users'}
               subtitle={
-                section === 'active-users'
+                visibleSection === 'active-users'
                   ? 'Users active in the last 72 hours'
                   : null
               }
             />
           ) : null}
 
-          {!selectedUserId && section === 'subscribers' ? (
+          {!isSubAdmin && !selectedUserId && visibleSection === 'subscribers' ? (
             <RegisteredUsersSection
               token={token}
               onAuthError={onAuthError}
@@ -276,24 +306,28 @@ export default function TredsDash() {
             />
           ) : null}
 
-          {!selectedUserId && section === 'visitors' ? (
+          {!isSubAdmin && !selectedUserId && visibleSection === 'visitors' ? (
             <VisitorsSection token={token} onAuthError={onAuthError} />
           ) : null}
 
-          {!selectedUserId && section === 'reports' ? (
+          {!isSubAdmin && !selectedUserId && visibleSection === 'reports' ? (
             <ReportsSection token={token} onAuthError={onAuthError} />
           ) : null}
 
-          {!selectedUserId && section === 'settings' ? (
+          {!isSubAdmin && !selectedUserId && visibleSection === 'settings' ? (
             <SettingsSection token={token} onAuthError={onAuthError} />
           ) : null}
         </main>
       </div>
 
-      <nav className="td-bottom-nav" aria-label="Mobile navigation">
-        {BOTTOM.map((item) => {
+      <nav
+        className="td-bottom-nav"
+        aria-label="Mobile navigation"
+        style={{ gridTemplateColumns: `repeat(${bottom.length}, 1fr)` }}
+      >
+        {bottom.map((item) => {
           const Icon = item.icon
-          const active = section === item.id
+          const active = visibleSection === item.id
           return (
             <button
               key={item.id}

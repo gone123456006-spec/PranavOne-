@@ -15,6 +15,25 @@ export function getAdminPassword() {
   return String(process.env.ADMIN_PASSWORD || '').trim()
 }
 
+export function getAdminUsername() {
+  return String(process.env.ADMIN_USERNAME || 'admin').trim().toLowerCase() || 'admin'
+}
+
+/** Sub-admin: sales team login that can only use the Sales (leads) section. */
+export function getSubAdmin() {
+  const username = String(process.env.SUBADMIN_USERNAME || '').trim().toLowerCase()
+  const password = String(process.env.SUBADMIN_PASSWORD || '').trim()
+  return username && password ? { username, password } : null
+}
+
+export const ADMIN_ROLES = ['admin', 'subadmin']
+
+/** Changes when the sub-admin password changes, so old sub-admin sessions stop working. */
+function subAdminKeyVersion() {
+  const sub = getSubAdmin()
+  return sub ? crypto.createHash('sha256').update(`sub:${sub.username}:${sub.password}`).digest('hex').slice(0, 16) : ''
+}
+
 function getSessionSecret() {
   const explicit = String(process.env.ADMIN_SESSION_SECRET || '').trim()
   if (explicit) return explicit
@@ -65,7 +84,20 @@ export function verifyAdminPassword(password) {
   return safeEqual(password, expected)
 }
 
-export function createAdminToken() {
+/** Returns { role, username } for valid credentials, otherwise null. Blank username means the main admin. */
+export function verifyAdminLogin(username, password) {
+  const name = String(username || '').trim().toLowerCase()
+  if (!name || name === getAdminUsername()) {
+    return verifyAdminPassword(password) ? { role: 'admin', username: getAdminUsername() } : null
+  }
+  const sub = getSubAdmin()
+  if (sub && safeEqual(name, sub.username) && safeEqual(password, sub.password)) {
+    return { role: 'subadmin', username: sub.username }
+  }
+  return null
+}
+
+export function createAdminToken({ role = 'admin', username = getAdminUsername() } = {}) {
   if (!isAdminConfigured()) {
     const error = new Error('TredsDash admin password is not configured on the server.')
     error.status = 503
@@ -73,7 +105,9 @@ export function createAdminToken() {
   }
 
   const payload = {
-    role: 'admin',
+    role,
+    username,
+    ...(role === 'subadmin' ? { kv: subAdminKeyVersion() } : {}),
     dash: getAdminDashboardName(),
     iat: Date.now(),
     exp: Date.now() + TOKEN_TTL_MS,
@@ -91,7 +125,8 @@ export function verifyAdminToken(token) {
 
   try {
     const payload = JSON.parse(fromB64url(payloadB64))
-    if (!payload || payload.role !== 'admin') return null
+    if (!payload || !ADMIN_ROLES.includes(payload.role)) return null
+    if (payload.role === 'subadmin' && (!getSubAdmin() || payload.kv !== subAdminKeyVersion())) return null
     if (!payload.exp || Date.now() > Number(payload.exp)) return null
     return payload
   } catch {
@@ -99,7 +134,7 @@ export function verifyAdminToken(token) {
   }
 }
 
-export function requireAdmin(req, res, next) {
+function authenticate(req, res, roles, next) {
   try {
     if (!isAdminConfigured()) {
       return res.status(503).json({
@@ -117,9 +152,23 @@ export function requireAdmin(req, res, next) {
       return res.status(401).json({ message: 'Admin session expired. Please sign in again.' })
     }
 
+    if (!roles.includes(session.role)) {
+      return res.status(403).json({ message: 'Your login does not have access to this section.' })
+    }
+
     req.admin = session
     next()
   } catch (error) {
     next(error)
   }
+}
+
+/** Full admin only. */
+export function requireAdmin(req, res, next) {
+  return authenticate(req, res, ['admin'], next)
+}
+
+/** Admin or sub-admin (Sales section). */
+export function requireSales(req, res, next) {
+  return authenticate(req, res, ADMIN_ROLES, next)
 }

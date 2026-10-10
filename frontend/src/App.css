@@ -510,17 +510,6 @@
   box-sizing: border-box;
 }
 
-.profile-menu-item--available {
-  background: #ecfdf3;
-  color: #067647;
-  font-weight: 700;
-}
-
-.profile-menu-item--available:hover,
-.profile-menu-item--available:focus-visible {
-  background: #d1fadf;
-}
-
 .nav-user-email {
   max-width: 180px;
   overflow: hidden;
@@ -3700,6 +3689,7 @@
 
 .footer-bottom {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 36px;
@@ -3718,6 +3708,26 @@
   .footer-bottom {
     padding-bottom: 84px;
   }
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+  margin-bottom: 6px;
+}
+
+.footer-links a {
+  font-size: 12px;
+  font-weight: 500;
+  color: #5f6368;
+  text-decoration: none;
+}
+
+.footer-links a:hover {
+  color: #006b3c;
+  text-decoration: underline;
 }
 
 .footer-copy {

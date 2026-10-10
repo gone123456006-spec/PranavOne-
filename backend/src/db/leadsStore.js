@@ -19,6 +19,37 @@ export const LEAD_STATUSES = [
 
 export const CALL_OUTCOMES = ['connected', 'busy', 'not_picked', 'call_later']
 
+/** Sources an admin can pick. "website" is set automatically; legacy "manual" leads count as "other". */
+export const LEAD_SOURCES = ['whatsapp', 'call', 'offline', 'other']
+const SOURCE_LABELS = { whatsapp: 'WhatsApp', call: 'Call', offline: 'Offline', other: 'Other', website: 'Website' }
+const MAX_CALLS = 999
+
+/** Required when a lead is marked "not_interested". */
+export const LOST_REASONS = [
+  'fee_high',
+  'joined_elsewhere',
+  'no_time',
+  'location_far',
+  'not_needed',
+  'not_reachable',
+  'family_decision',
+  'other',
+]
+const LOST_REASON_LABELS = {
+  fee_high: 'Fee too high',
+  joined_elsewhere: 'Joined another institute',
+  no_time: 'No time right now',
+  location_far: 'Location too far',
+  not_needed: 'Not interested in course',
+  not_reachable: 'Never reachable',
+  family_decision: 'Family said no',
+  other: 'Other',
+}
+
+export const PAYMENT_MODES = ['upi', 'cash', 'bank', 'card', 'other']
+const PAYMENT_MODE_LABELS = { upi: 'UPI', cash: 'Cash', bank: 'Bank transfer', card: 'Card', other: 'Other' }
+const MAX_AMOUNT = 1_000_000
+
 const CONNECTED_STATUSES = ['converted', 'pending', 'recall_later', 'not_interested']
 const FOLLOW_UP_STATUSES = LEAD_STATUSES.filter((s) => s !== 'converted')
 
@@ -81,19 +112,83 @@ function resolveStatus(outcome, requested) {
   return LEAD_STATUSES.includes(requested) ? requested : 'not_called'
 }
 
+function parseAmount(value, label) {
+  const amount = Math.round(Number(value) * 100) / 100
+  if (!Number.isFinite(amount) || amount <= 0 || amount > MAX_AMOUNT) {
+    throw httpError(400, `${label} must be between ₹1 and ₹10,00,000.`)
+  }
+  return amount
+}
+
+function parseFee(value) {
+  if (value === null || value === '' || value === undefined) return null
+  return parseAmount(value, 'Course fee')
+}
+
+function parseSource(value) {
+  if (LEAD_SOURCES.includes(value)) return value
+  throw httpError(400, 'Choose a source: WhatsApp, Call, Offline or Other.')
+}
+
+function parseCallCount(value) {
+  const count = Number(value)
+  if (!Number.isInteger(count) || count < 0 || count > MAX_CALLS) {
+    throw httpError(400, `Times called must be a whole number from 0 to ${MAX_CALLS}.`)
+  }
+  return count
+}
+
+/** Returns the $set fields for the lost reason, or throws if a not-interested lead has none. */
+function lostReasonFields(status, input) {
+  if (status !== 'not_interested') return { lostReason: null, lostNote: null }
+  if (!LOST_REASONS.includes(input.lostReason)) {
+    throw httpError(400, 'Choose why the lead did not convert.')
+  }
+  const lostNote = cleanNote(input.lostNote).slice(0, 300) || null
+  if (input.lostReason === 'other' && !lostNote) {
+    throw httpError(400, 'Write the reason when you choose Other.')
+  }
+  return { lostReason: input.lostReason, lostNote }
+}
+
+function lostReasonText({ lostReason, lostNote }) {
+  if (!lostReason) return ''
+  const label = LOST_REASON_LABELS[lostReason]
+  return lostNote ? `${label}: ${lostNote}` : label
+}
+
+function formatRupees(amount) {
+  return `₹${Number(amount).toLocaleString('en-IN')}`
+}
+
+function paymentSummary(doc) {
+  const feeTotal = doc.feeTotal ?? null
+  const paidTotal = Math.round((doc.paidTotal || 0) * 100) / 100
+  const dueAmount = feeTotal ? Math.max(0, Math.round((feeTotal - paidTotal) * 100) / 100) : null
+  let paymentStatus = 'unpaid'
+  if (paidTotal > 0) paymentStatus = feeTotal && paidTotal >= feeTotal ? 'paid' : 'partial'
+  return { feeTotal, paidTotal, dueAmount, paymentStatus }
+}
+
 function mapLead(doc) {
   if (!doc) return null
   return {
+    ...paymentSummary(doc),
+    payments: (doc.payments || [])
+      .slice()
+      .sort((a, b) => new Date(b.paidAt) - new Date(a.paidAt)),
     id: doc._id,
     name: doc.name,
     phone: doc.phone,
     email: doc.email || null,
     batch: doc.batch || null,
     location: doc.location || null,
-    source: doc.source || 'manual',
+    source: doc.source === 'manual' || !doc.source ? 'other' : doc.source,
     status: doc.status,
     reminderAt: doc.reminderAt || null,
     attempts: doc.attempts || 0,
+    lostReason: doc.status === 'not_interested' ? doc.lostReason || null : null,
+    lostNote: doc.status === 'not_interested' ? doc.lostNote || null : null,
     lastOutcome: doc.lastOutcome || null,
     lastNote: doc.lastNote || null,
     lastCalledAt: doc.lastCalledAt || null,
@@ -133,6 +228,8 @@ export async function listLeads({
   q = '',
   due = false,
   batch = '',
+  payment = '',
+  source = '',
   page = 1,
   pageSize = 30,
 } = {}) {
@@ -161,6 +258,23 @@ export async function listLeads({
 
   const batchName = cleanText(batch, 80)
   if (batchName) filter.batch = batchName
+
+  if (source === 'other') filter.source = { $in: ['other', 'manual', null] }
+  else if (source === 'website' || LEAD_SOURCES.includes(source)) filter.source = source
+
+  const paid = { $ifNull: ['$paidTotal', 0] }
+  if (payment === 'unpaid') filter.$expr = { $lte: [paid, 0] }
+  if (payment === 'paid') {
+    filter.$expr = { $and: [{ $gt: ['$feeTotal', 0] }, { $gte: [paid, '$feeTotal'] }] }
+  }
+  if (payment === 'partial') {
+    filter.$expr = {
+      $and: [
+        { $gt: [paid, 0] },
+        { $or: [{ $not: [{ $gt: ['$feeTotal', 0] }] }, { $lt: [paid, '$feeTotal'] }] },
+      ],
+    }
+  }
 
   const sort =
     stage === 'converted'
@@ -194,7 +308,7 @@ export async function getLeadStats() {
   monthStart.setDate(1)
   monthStart.setHours(0, 0, 0, 0)
 
-  const [byStatus, dueToday, overdue, convertedThisMonth, addedToday, batches] =
+  const [byStatus, dueToday, overdue, convertedThisMonth, addedToday, batches, money, monthMoney, lost] =
     await Promise.all([
       col('leads')
         .aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }])
@@ -218,6 +332,40 @@ export async function getLeadStats() {
           { $group: { _id: '$batch' } },
         ])
         .toArray(),
+      col('leads')
+        .aggregate([
+          {
+            $group: {
+              _id: null,
+              collected: { $sum: { $ifNull: ['$paidTotal', 0] } },
+              totalCalls: { $sum: { $ifNull: ['$attempts', 0] } },
+              pendingDues: {
+                $sum: {
+                  $cond: [
+                    { $and: [{ $eq: ['$status', 'converted'] }, { $gt: ['$feeTotal', 0] }] },
+                    { $max: [0, { $subtract: ['$feeTotal', { $ifNull: ['$paidTotal', 0] }] }] },
+                    0,
+                  ],
+                },
+              },
+            },
+          },
+        ])
+        .toArray(),
+      col('leads')
+        .aggregate([
+          { $match: { 'payments.paidAt': { $gte: monthStart } } },
+          { $unwind: '$payments' },
+          { $match: { 'payments.paidAt': { $gte: monthStart } } },
+          { $group: { _id: null, total: { $sum: '$payments.amount' } } },
+        ])
+        .toArray(),
+      col('leads')
+        .aggregate([
+          { $match: { status: 'not_interested' } },
+          { $group: { _id: { $ifNull: ['$lostReason', 'unknown'] }, count: { $sum: 1 } } },
+        ])
+        .toArray(),
     ])
 
   const counts = Object.fromEntries(LEAD_STATUSES.map((s) => [s, 0]))
@@ -236,10 +384,15 @@ export async function getLeadStats() {
     convertedThisMonth,
     conversionRate: total ? Math.round((counts.converted / total) * 1000) / 10 : 0,
     batches: batches.map((b) => b._id).sort(),
+    collected: money[0]?.collected || 0,
+    collectedThisMonth: monthMoney[0]?.total || 0,
+    pendingDues: money[0]?.pendingDues || 0,
+    totalCalls: money[0]?.totalCalls || 0,
+    lostReasons: Object.fromEntries(lost.map((row) => [row._id, row.count])),
   }
 }
 
-export async function createLead(input = {}, { source = 'manual' } = {}) {
+export async function createLead(input = {}, options = {}) {
   assertDb()
   const name = cleanText(input.name, 120)
   if (name.length < 2) throw httpError(400, 'Enter the lead name.')
@@ -247,10 +400,15 @@ export async function createLead(input = {}, { source = 'manual' } = {}) {
   if (!phone) throw httpError(400, 'Enter a valid 10-digit phone number.')
   const email = normalizeEmail(input.email)
   const batch = cleanText(input.batch, 80) || null
+  const feeTotal = parseFee(input.feeTotal)
   const note = cleanNote(input.note)
   const outcome = CALL_OUTCOMES.includes(input.outcome) ? input.outcome : null
   const status = resolveStatus(outcome, input.status)
   const reminderAt = status === 'converted' ? null : parseDate(input.reminderAt)
+  const lost = lostReasonFields(status, input)
+  const source = options.source || (input.source ? parseSource(input.source) : 'other')
+  const callCount = input.callCount === undefined || input.callCount === '' ? 0 : parseCallCount(input.callCount)
+  const attempts = Math.max(outcome ? 1 : 0, callCount)
 
   const existing = await col('leads').findOne({ phone })
   if (existing) {
@@ -262,7 +420,7 @@ export async function createLead(input = {}, { source = 'manual' } = {}) {
 
   const now = new Date()
   const history = [historyEntry({ type: 'created', note: source === 'website' ? 'Signed up on website' : '' })]
-  if (outcome) history.push(historyEntry({ type: 'call', outcome, status, note }))
+  if (outcome) history.push(historyEntry({ type: 'call', outcome, status, note: [note, lostReasonText(lost)].filter(Boolean).join(' · ') }))
   else if (note) history.push(historyEntry({ type: 'note', note }))
 
   const doc = {
@@ -275,11 +433,15 @@ export async function createLead(input = {}, { source = 'manual' } = {}) {
     source,
     status,
     reminderAt,
-    attempts: outcome ? 1 : 0,
+    attempts,
+    ...lost,
     lastOutcome: outcome,
     lastNote: note || null,
     lastCalledAt: outcome ? now : null,
     convertedAt: status === 'converted' ? now : null,
+    feeTotal,
+    paidTotal: 0,
+    payments: [],
     history,
     createdAt: now,
     updatedAt: now,
@@ -301,10 +463,12 @@ export async function logLeadCall(id, input = {}) {
   const status = resolveStatus(outcome, input.status)
   const note = cleanNote(input.note)
   const reminderAt = status === 'converted' ? null : parseDate(input.reminderAt)
+  const lost = lostReasonFields(status, input)
   const now = new Date()
 
   const set = {
     status,
+    ...lost,
     reminderAt,
     lastOutcome: outcome,
     lastCalledAt: now,
@@ -318,7 +482,9 @@ export async function logLeadCall(id, input = {}) {
     {
       $set: set,
       $inc: { attempts: 1 },
-      $push: { history: historyEntry({ type: 'call', outcome, status, note }) },
+      $push: {
+        history: historyEntry({ type: 'call', outcome, status, note: [note, lostReasonText(lost)].filter(Boolean).join(' · ') }),
+      },
     },
     { returnDocument: 'after' },
   )
@@ -344,6 +510,23 @@ export async function updateLead(id, input = {}) {
   }
   if (input.email !== undefined) set.email = normalizeEmail(input.email)
   if (input.batch !== undefined) set.batch = cleanText(input.batch, 80) || null
+  if (input.source !== undefined) {
+    set.source = parseSource(input.source)
+    push.push(historyEntry({ type: 'source', note: `Source set to ${SOURCE_LABELS[set.source]}` }))
+  }
+  if (input.callCount !== undefined) {
+    set.attempts = parseCallCount(input.callCount)
+    push.push(historyEntry({ type: 'calls', note: `Times called set to ${set.attempts}` }))
+  }
+  if (input.feeTotal !== undefined) {
+    set.feeTotal = parseFee(input.feeTotal)
+    push.push(
+      historyEntry({
+        type: 'fee',
+        note: set.feeTotal ? `Course fee set to ${formatRupees(set.feeTotal)}` : 'Course fee cleared',
+      }),
+    )
+  }
   if (input.reminderAt !== undefined) {
     set.reminderAt = parseDate(input.reminderAt)
     push.push(
@@ -356,11 +539,12 @@ export async function updateLead(id, input = {}) {
   if (input.status !== undefined) {
     if (!LEAD_STATUSES.includes(input.status)) throw httpError(400, 'Unknown status.')
     set.status = input.status
+    Object.assign(set, lostReasonFields(input.status, input))
     if (input.status === 'converted') {
       set.convertedAt = now
       set.reminderAt = null
     }
-    push.push(historyEntry({ type: 'status', status: input.status }))
+    push.push(historyEntry({ type: 'status', status: input.status, note: lostReasonText(set) }))
   }
   if (input.note) {
     const note = cleanNote(input.note)
@@ -381,6 +565,61 @@ export async function updateLead(id, input = {}) {
     throw error
   }
   if (!doc) throw httpError(404, 'Lead not found.')
+  return mapLead(doc)
+}
+
+export async function addLeadPayment(id, input = {}) {
+  assertDb()
+  const amount = parseAmount(input.amount, 'Amount')
+  const mode = PAYMENT_MODES.includes(input.mode) ? input.mode : 'upi'
+  const now = new Date()
+  const paidAt = parseDate(input.paidAt) || now
+  if (paidAt > new Date(now.getTime() + 60_000)) throw httpError(400, 'Payment date cannot be in the future.')
+  const reference = cleanText(input.reference, 80) || null
+  const note = cleanNote(input.note).slice(0, 300) || null
+
+  const payment = { id: randomUUID(), amount, mode, reference, note, paidAt, createdAt: now }
+  const doc = await col('leads').findOneAndUpdate(
+    { _id: String(id) },
+    {
+      $push: {
+        payments: payment,
+        history: historyEntry({
+          type: 'payment',
+          note: `${formatRupees(amount)} received via ${PAYMENT_MODE_LABELS[mode]}${reference ? ` (Ref ${reference})` : ''}`,
+        }),
+      },
+      $inc: { paidTotal: amount },
+      $set: { updatedAt: now },
+    },
+    { returnDocument: 'after' },
+  )
+  if (!doc) throw httpError(404, 'Lead not found.')
+  return mapLead(doc)
+}
+
+export async function deleteLeadPayment(id, paymentId) {
+  assertDb()
+  const lead = await col('leads').findOne(
+    { _id: String(id), 'payments.id': String(paymentId) },
+    { projection: { 'payments.$': 1 } },
+  )
+  const payment = lead?.payments?.[0]
+  if (!payment) throw httpError(404, 'Payment not found.')
+
+  const doc = await col('leads').findOneAndUpdate(
+    { _id: String(id), 'payments.id': String(paymentId) },
+    {
+      $pull: { payments: { id: String(paymentId) } },
+      $inc: { paidTotal: -payment.amount },
+      $set: { updatedAt: new Date() },
+      $push: {
+        history: historyEntry({ type: 'payment', note: `Removed payment of ${formatRupees(payment.amount)}` }),
+      },
+    },
+    { returnDocument: 'after' },
+  )
+  if (!doc) throw httpError(404, 'Payment not found.')
   return mapLead(doc)
 }
 
@@ -415,6 +654,9 @@ export async function addWebsiteLead(user) {
         lastNote: null,
         lastCalledAt: null,
         convertedAt: null,
+        feeTotal: null,
+        paidTotal: 0,
+        payments: [],
         history: [historyEntry({ type: 'created', note: 'Signed up on website' })],
         createdAt: user.createdAt ? new Date(user.createdAt) : now,
         updatedAt: now,

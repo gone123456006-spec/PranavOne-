@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { MapPin } from '@phosphor-icons/react'
 import { adminFetch, downloadUsersExport, formatDate } from './adminApi.js'
-import { Pagination, SparkBars, StatCards } from './ui.jsx'
+import { Pagination, SheetLetters, SparkBars, StatCards } from './ui.jsx'
 
 export function OverviewSection({ token, onAuthError }) {
   const [overview, setOverview] = useState(null)
@@ -219,52 +218,65 @@ export function RegisteredUsersSection({
 
       {error ? <p className="td-error">{error}</p> : null}
 
-      <div className="td-card-list">
-        {loading && !data.users?.length ? <p className="td-muted">Loading…</p> : null}
-        {!loading && !data.users?.length ? <p className="td-muted">No users found.</p> : null}
-        {(data.users || []).map((user) => (
-          <button
-            type="button"
-            className="td-user-card"
-            key={user.tenantId}
-            onClick={() => onOpenUser?.(user.tenantId)}
-          >
-            <div>
-              <strong>{user.name || '—'}</strong>
-              <span>{user.email || '—'}</span>
-              <span>{user.phone || 'No phone'}</span>
-              <span className="td-inline-icon">
-                <MapPin size={14} weight="fill" aria-hidden="true" />
-                {user.location || 'No location'}
-              </span>
-              <span
-                className={
-                  user.subscriptionStatus === 'active'
-                    ? 'td-badge td-badge--active'
-                    : 'td-badge'
-                }
+      <div className="td-sheet-wrap">
+        <table className="td-sheet td-sheet--clickable">
+          <thead>
+            <SheetLetters count={8} />
+            <tr>
+              <th className="td-sheet-rownum" aria-label="Row" />
+              <th className="td-sheet-sticky">Name</th>
+              <th>Phone</th>
+              <th>Gmail</th>
+              <th>Location</th>
+              <th>Activity</th>
+              <th>Subscription</th>
+              <th>Joined</th>
+              <th>Last login</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading && !data.users?.length ? (
+              <tr><td className="td-sheet-empty" colSpan={9}>Loading…</td></tr>
+            ) : null}
+            {!loading && !data.users?.length ? (
+              <tr><td className="td-sheet-empty" colSpan={9}>No users found.</td></tr>
+            ) : null}
+            {(data.users || []).map((user, i) => (
+              <tr
+                key={user.tenantId}
+                tabIndex={0}
+                onClick={() => onOpenUser?.(user.tenantId)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') onOpenUser?.(user.tenantId)
+                }}
               >
-                {user.subscriptionStatus === 'active'
-                  ? `Subscription: Active${user.subscriptionType ? ` (${user.subscriptionType})` : ''}`
-                  : 'No active subscription'}
-              </span>
-            </div>
-            <div>
-              <span
-                className={
-                  user.activityStatus === 'active' ? 'td-badge td-badge--active' : 'td-badge'
-                }
-              >
-                {user.activityStatus}
-              </span>
-              <span className="td-meta">Joined {formatDate(user.createdAt)}</span>
-              <span className="td-meta">Last login {formatDate(user.lastLoginAt)}</span>
-            </div>
-          </button>
-        ))}
+                <td className="td-sheet-rownum">{((data.page || page) - 1) * 20 + i + 1}</td>
+                <td className="td-sheet-sticky"><strong>{user.name || '—'}</strong></td>
+                <td className="td-sheet-mono">{user.phone || ''}</td>
+                <td>{user.email || ''}</td>
+                <td>{user.location || ''}</td>
+                <td>
+                  <span className={`td-status ${user.activityStatus === 'active' ? 'td-status--converted' : 'td-status--not_interested'}`}>
+                    {user.activityStatus === 'active' ? 'Active' : 'Inactive'}
+                  </span>
+                </td>
+                <td>
+                  {user.subscriptionStatus === 'active'
+                    ? `Active${user.subscriptionType ? ` (${user.subscriptionType})` : ''}`
+                    : ''}
+                </td>
+                <td>{formatDate(user.createdAt)}</td>
+                <td>{formatDate(user.lastLoginAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      <Pagination page={data.page || page} totalPages={data.totalPages || 1} onChange={setPage} />
+      <div className="td-sheet-foot">
+        <span>{data.total || 0} users</span>
+        <Pagination page={data.page || page} totalPages={data.totalPages || 1} onChange={setPage} />
+      </div>
     </div>
   )
 }
@@ -440,37 +452,70 @@ export function VisitorsSection({ token, onAuthError }) {
       </div>
 
       {tab === 'overview' ? (
-        <div className="td-card-list">
-          {(visitors.visitors || []).map((v) => (
-            <div className="td-user-card td-user-card--static" key={v.visitorId}>
-              <div>
-                <strong className="td-mono">{v.visitorId.slice(0, 18)}…</strong>
-                <span>{v.isReturning ? 'Returning' : 'New'} visitor</span>
-              </div>
-              <div>
-                <span className="td-meta">First {formatDate(v.firstSeenAt)}</span>
-                <span className="td-meta">Last {formatDate(v.lastSeenAt)}</span>
-                <span className="td-meta">
-                  {v.sessionCount} sessions · {v.pageViewCount} views
-                </span>
-              </div>
-            </div>
-          ))}
+        <div className="td-sheet-wrap">
+          <table className="td-sheet">
+            <thead>
+              <SheetLetters count={6} stickyFirst={false} />
+              <tr>
+                <th className="td-sheet-rownum" aria-label="Row" />
+                <th>Visitor ID</th>
+                <th>Type</th>
+                <th>First seen</th>
+                <th>Last seen</th>
+                <th className="td-sheet-num">Sessions</th>
+                <th className="td-sheet-num">Page views</th>
+              </tr>
+            </thead>
+            <tbody>
+              {!visitors.visitors?.length ? (
+                <tr><td className="td-sheet-empty" colSpan={7}>No visitors yet.</td></tr>
+              ) : null}
+              {(visitors.visitors || []).map((v, i) => (
+                <tr key={v.visitorId}>
+                  <td className="td-sheet-rownum">{((visitors.page || page) - 1) * 20 + i + 1}</td>
+                  <td className="td-sheet-mono">{v.visitorId.slice(0, 18)}…</td>
+                  <td>{v.isReturning ? 'Returning' : 'New'}</td>
+                  <td>{formatDate(v.firstSeenAt)}</td>
+                  <td>{formatDate(v.lastSeenAt)}</td>
+                  <td className="td-sheet-num">{v.sessionCount}</td>
+                  <td className="td-sheet-num">{v.pageViewCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : (
-        <div className="td-card-list">
-          {(sessions.sessions || []).map((s) => (
-            <div className="td-user-card td-user-card--static" key={s.sessionId}>
-              <div>
-                <strong>{s.landingPath || '/'}</strong>
-                <span>{s.device || '—'} / {s.browser || '—'}</span>
-              </div>
-              <div>
-                <span className="td-meta">{formatDate(s.startedAt)}</span>
-                <span className="td-meta">{s.pageCount} pages · {s.engaged ? 'Engaged' : 'Browse'}</span>
-              </div>
-            </div>
-          ))}
+        <div className="td-sheet-wrap">
+          <table className="td-sheet">
+            <thead>
+              <SheetLetters count={6} stickyFirst={false} />
+              <tr>
+                <th className="td-sheet-rownum" aria-label="Row" />
+                <th>Landing page</th>
+                <th>Device</th>
+                <th>Browser</th>
+                <th>Started</th>
+                <th className="td-sheet-num">Pages</th>
+                <th>Engagement</th>
+              </tr>
+            </thead>
+            <tbody>
+              {!sessions.sessions?.length ? (
+                <tr><td className="td-sheet-empty" colSpan={7}>No sessions yet.</td></tr>
+              ) : null}
+              {(sessions.sessions || []).map((s, i) => (
+                <tr key={s.sessionId}>
+                  <td className="td-sheet-rownum">{((sessions.page || page) - 1) * 20 + i + 1}</td>
+                  <td>{s.landingPath || '/'}</td>
+                  <td>{s.device || ''}</td>
+                  <td>{s.browser || ''}</td>
+                  <td>{formatDate(s.startedAt)}</td>
+                  <td className="td-sheet-num">{s.pageCount}</td>
+                  <td>{s.engaged ? 'Engaged' : 'Browse'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -549,7 +594,6 @@ export function ReportsSection({ token, onAuthError }) {
 }
 
 export function SettingsSection({ token, onAuthError }) {
-  const [webinarLink, setWebinarLink] = useState('')
   const [amountRupees, setAmountRupees] = useState('1')
   const [meta, setMeta] = useState(null)
   const [message, setMessage] = useState('')
@@ -559,7 +603,6 @@ export function SettingsSection({ token, onAuthError }) {
     void (async () => {
       try {
         const res = await adminFetch('/api/admin/settings', { token })
-        setWebinarLink(res.settings?.webinarLink || '')
         setAmountRupees(String(res.settings?.amountRupees ?? 1))
         setMeta(res.settings || null)
       } catch (err) {
@@ -576,7 +619,7 @@ export function SettingsSection({ token, onAuthError }) {
       const res = await adminFetch('/api/admin/settings', {
         token,
         method: 'PUT',
-        body: { webinarLink, amountRupees: Number(amountRupees) },
+        body: { amountRupees: Number(amountRupees) },
       })
       setMeta(res.settings)
       setMessage(res.message || 'Saved.')
@@ -593,19 +636,10 @@ export function SettingsSection({ token, onAuthError }) {
       <div className="td-section-head">
         <div>
           <h2>Settings</h2>
-          <p className="td-muted">Webinar link and subscription price update the live site in seconds.</p>
+          <p className="td-muted">Subscription price updates the live site in seconds.</p>
         </div>
       </div>
       <form className="td-card" onSubmit={onSave}>
-        <label className="td-label" htmlFor="td-webinar">Webinar link</label>
-        <input
-          id="td-webinar"
-          className="td-input"
-          type="url"
-          value={webinarLink}
-          onChange={(e) => setWebinarLink(e.target.value)}
-          placeholder="https://meet.google.com/..."
-        />
         <label className="td-label" htmlFor="td-price">Subscription price (₹)</label>
         <input
           id="td-price"

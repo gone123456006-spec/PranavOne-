@@ -47,7 +47,7 @@ npm run preview
    - **Health Check Path:** `/health`
 3. Create a MongoDB database and set `MONGODB_URI` (and optionally `MONGODB_DB`).
 4. Add env vars from [`backend/.env.example`](./backend/.env.example)  
-   (required: `CORS_ORIGIN`, `MONGODB_URI`, `AUTH_JWT_SECRET`, `WEBINAR_LINK`, SMTP).
+   (required: `CORS_ORIGIN`, `MONGODB_URI`, `AUTH_JWT_SECRET`).
 5. Keep-alive (prevent free-tier sleep):
    - Set GitHub secret `KEEPALIVE_URL=https://YOUR-SERVICE.onrender.com/health`  
      (workflow runs every minute), **or**
@@ -89,5 +89,6 @@ Rebuild/redeploy the frontend after changing this.
 - All data (users, subscriptions, profiles, registrations, settings) lives in MongoDB (`MONGODB_URI`).
 - Visitor analytics (`backend/src/db/analyticsStore.js`) are stubs until a storage backend is implemented.
 - Own profile APIs: `GET /api/profile/me`, `GET /api/auth/me` (Bearer access token) — returns **only that user's** data.
-- Keep `MONGODB_URI`, `AUTH_JWT_SECRET` and the SMTP password **server-only** (no `VITE_` prefix).
+- Keep `MONGODB_URI`, `AUTH_JWT_SECRET`, `ADMIN_PASSWORD` and `SUBADMIN_PASSWORD` **server-only** (no `VITE_` prefix).
+- `SUBADMIN_USERNAME` / `SUBADMIN_PASSWORD` create a sales-team login that only sees the Sales section of `/tredsdash` (cannot delete leads or payments).
 - Free Render services may sleep when idle; first request after sleep can take ~30–60s.

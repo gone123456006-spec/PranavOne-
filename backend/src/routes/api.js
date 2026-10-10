@@ -10,7 +10,7 @@ export const apiRouter = Router()
 
 apiRouter.get('/', (_req, res) => {
   res.json({
-    name: 'BizVyapar API',
+    name: 'Pranav One API',
     version: '0.0.0',
     message: 'Backend is ready.',
     isolation: 'per-user-database',

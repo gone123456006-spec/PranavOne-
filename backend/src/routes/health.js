@@ -1,13 +1,11 @@
 import { Router } from 'express'
 import { getRuntimeStatus } from '../config.js'
-import { getEmailConfigStatus } from '../email.js'
 import { isMongoEnabled } from '../db/mongo.js'
 
 export const healthRouter = Router()
 
 healthRouter.get('/', (_req, res) => {
   const runtime = getRuntimeStatus()
-  const email = getEmailConfigStatus()
 
   res.json({
     status: 'ok',
@@ -17,12 +15,9 @@ healthRouter.get('/', (_req, res) => {
     ready: runtime.ready,
     database: isMongoEnabled() ? 'mongodb' : 'none',
     checks: {
-      email: runtime.email,
-      webinarLink: runtime.webinarLink,
       cors: runtime.cors,
       database: isMongoEnabled(),
     },
     missing: runtime.missing,
-    emailMode: email.mode || null,
   })
 })

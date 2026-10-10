@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   Briefcase,
   Calculator,
@@ -9,7 +9,6 @@ import {
 } from '@phosphor-icons/react'
 import { useAuth, getAccessToken } from './context/AuthContext.jsx'
 import { apiUrl } from './lib/api.js'
-import { usePublicSettings } from './hooks/usePublicSettings.js'
 import './App.css'
 
 const WHATSAPP_SUPPORT_PHONE = '919153832948'
@@ -388,7 +387,6 @@ export default function App() {
   const navigate = useNavigate()
   const { user, signingIn, signInWithDetails, signOut, refreshProfile } =
     useAuth()
-  const publicSettings = usePublicSettings(4000)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -463,9 +461,6 @@ export default function App() {
         name: paidName,
         email: paidEmail,
         phone: paidPhone,
-        webinarLink: publicSettings.webinarLink || null,
-        emailSent: true,
-        emailError: null,
         subscriptionType: subscription?.plan || 'lifetime',
       })
       if (paidName) setName(paidName)
@@ -501,9 +496,6 @@ export default function App() {
         name: lockedName || name || '',
         email: lockedEmail,
         phone: digits || activeUser?.phone || phone || '',
-        webinarLink: publicSettings.webinarLink || null,
-        emailSent: true,
-        emailError: null,
         subscriptionType: 'lifetime',
       })
     }
@@ -922,48 +914,16 @@ export default function App() {
                   </div>
 
                   {subscriptionActive ? (
-                    <>
-                      <a
-                        className="profile-menu-item profile-menu-link"
-                        href={WHATSAPP_CHANNEL_URL}
-                        target="_blank"
-                        rel="noreferrer"
-                        role="menuitem"
-                        onClick={() => setShowProfileMenu(false)}
-                      >
-                        WhatsApp channel
-                      </a>
-                      <a
-                        className="profile-menu-item profile-menu-link profile-menu-item--available"
-                        href={
-                          publicSettings.webinarLink ||
-                          submitted?.webinarLink ||
-                          '#top'
-                        }
-                        target={
-                          publicSettings.webinarLink || submitted?.webinarLink
-                            ? '_blank'
-                            : undefined
-                        }
-                        rel={
-                          publicSettings.webinarLink || submitted?.webinarLink
-                            ? 'noreferrer'
-                            : undefined
-                        }
-                        role="menuitem"
-                        onClick={(event) => {
-                          setShowProfileMenu(false)
-                          if (
-                            !(publicSettings.webinarLink || submitted?.webinarLink)
-                          ) {
-                            event.preventDefault()
-                            openPaidLinksPopup()
-                          }
-                        }}
-                      >
-                        Available Now
-                      </a>
-                    </>
+                    <a
+                      className="profile-menu-item profile-menu-link"
+                      href={WHATSAPP_CHANNEL_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                      role="menuitem"
+                      onClick={() => setShowProfileMenu(false)}
+                    >
+                      WhatsApp channel
+                    </a>
                   ) : (
                     <button
                       className="profile-menu-item"
@@ -1400,6 +1360,11 @@ export default function App() {
           </div>
 
           <div className="footer-bottom">
+            <nav className="footer-links" aria-label="Policies">
+              <Link to="/refund-policy">Refund Policy</Link>
+              <Link to="/refund-policy#job-assistance">100% Job Assistance</Link>
+              <Link to="/terms">Terms &amp; Conditions</Link>
+            </nav>
             <p className="footer-copy">
               © {new Date().getFullYear()} Pranav One. All rights reserved.
             </p>
@@ -1442,39 +1407,10 @@ export default function App() {
                     {message || 'Now you are in for the Tally + Computer Course session.'}
                   </p>
 
-                  {submitted.emailSent ? (
-                    <p className="join-sub">
-                      Session details are linked to{' '}
-                      <strong>{submitted.email}</strong>. Check Gmail (and Spam).
-                    </p>
-                  ) : submitted.emailError ? (
-                    <p className="form-error" role="alert">
-                      Email not sent to <strong>{submitted.email}</strong>
-                      {submitted.emailError ? `: ${submitted.emailError}` : '.'}
-                      {' '}Use the button below to join.
-                    </p>
-                  ) : (
-                    <p className="join-sub">
-                      Sending confirmation to <strong>{submitted.email}</strong>
-                      …
-                    </p>
-                  )}
-
-                  {(publicSettings.webinarLink || submitted.webinarLink) ? (
-                    <a
-                      className="btn-trial is-subscribed-cta"
-                      href={publicSettings.webinarLink || submitted.webinarLink}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Available Now
-                    </a>
-                  ) : (
-                    <p className="join-sub">
-                      Your seat is confirmed. Session link will appear here once
-                      available.
-                    </p>
-                  )}
+                  <p className="join-sub">
+                    Your seat is confirmed. Our team will contact you on
+                    WhatsApp with the batch details.
+                  </p>
 
                   <a
                     className="btn-trial btn-whatsapp-channel"
