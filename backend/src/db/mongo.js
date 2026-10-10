@@ -1,5 +1,5 @@
 /**
- * MongoDB connection for BizVyapar durable data.
+ * MongoDB connection for Pranav One durable data.
  * Uses the Stable API (same options as the Atlas “Connect” sample).
  * Set MONGODB_URI (and optionally MONGODB_DB) in env — never commit the real URI.
  */

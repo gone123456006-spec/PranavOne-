@@ -30,7 +30,7 @@ async function ping() {
     const timer = setTimeout(() => controller.abort(), 15_000)
     const response = await fetch(url, {
       method: 'GET',
-      headers: { 'user-agent': 'bizvyapar-keepalive/1.0' },
+      headers: { 'user-agent': 'pranavone-keepalive/1.0' },
       signal: controller.signal,
     })
     clearTimeout(timer)

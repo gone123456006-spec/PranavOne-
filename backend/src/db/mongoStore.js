@@ -1,5 +1,5 @@
 /**
- * Mongo tenant/profile/registration store (BizVyapar website data).
+ * Mongo tenant/profile/registration store (Pranav One website data).
  */
 import { randomUUID } from 'node:crypto'
 import { col } from './mongo.js'

@@ -1,9 +1,9 @@
-# Render Blueprint — BizVyapar API + keep-alive cron
+# Render Blueprint — Pranav One API + keep-alive cron
 # Docs: https://render.com/docs/blueprint-spec
 
 services:
   - type: web
-    name: bizvyapar-api
+    name: pranavone-api
     runtime: node
     rootDir: backend
     plan: free
@@ -42,7 +42,7 @@ services:
         sync: false
 
   - type: cron
-    name: bizvyapar-keepalive
+    name: pranavone-keepalive
     runtime: node
     rootDir: backend
     region: singapore

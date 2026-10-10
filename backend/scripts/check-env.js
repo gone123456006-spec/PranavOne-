@@ -9,7 +9,7 @@ import { getRuntimeStatus } from '../src/config.js'
 
 const runtime = getRuntimeStatus()
 
-console.log('BizVyapar env check')
+console.log('Pranav One env check')
 console.log(
   JSON.stringify(
     {

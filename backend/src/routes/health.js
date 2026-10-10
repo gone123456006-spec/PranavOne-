@@ -9,7 +9,7 @@ healthRouter.get('/', (_req, res) => {
 
   res.json({
     status: 'ok',
-    service: 'bizvyapar-backend',
+    service: 'pranavone-api',
     timestamp: new Date().toISOString(),
     platform: process.env.RENDER ? 'render' : process.env.VERCEL ? 'vercel' : 'local',
     ready: runtime.ready,

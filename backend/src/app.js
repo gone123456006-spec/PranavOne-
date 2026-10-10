@@ -46,7 +46,7 @@ export function createApp() {
   app.get('/health', (_req, res) => {
     res.status(200).json({
       status: 'ok',
-      service: 'bizvyapar-backend',
+      service: 'pranavone-api',
       timestamp: new Date().toISOString(),
     })
   })
@@ -55,7 +55,7 @@ export function createApp() {
     const runtime = getRuntimeStatus()
     res.json({
       status: 'ok',
-      service: 'bizvyapar-backend',
+      service: 'pranavone-api',
       message: 'Pranav One API is running.',
       health: '/health',
       ready: runtime.ready,
