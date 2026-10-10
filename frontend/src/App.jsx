@@ -15,11 +15,6 @@ const WHATSAPP_SUPPORT_PHONE = '919153832948'
 const WHATSAPP_CHANNEL_URL =
   'https://whatsapp.com/channel/0029Vb8bHENHQbRzGerkML0N'
 
-const EVENT_SPEAKER = {
-  role: 'Chartered Accountant | Ex-Deloitte | Founder, Pranav One',
-  photo: '/images/event-speaker.jpg',
-}
-
 const PAST_EVENTS = [
   {
     lead: 'MS Excel for Accountants:',
@@ -1176,7 +1171,7 @@ export default function App() {
                   </p>
                   <img
                     className="event-banner-photo"
-                    src={EVENT_SPEAKER.photo}
+                    src="/images/event-speaker.jpg"
                     alt=""
                     loading="lazy"
                   />
@@ -1186,7 +1181,6 @@ export default function App() {
                   <h3>
                     Masterclass: {event.lead} {event.rest}
                   </h3>
-                  <p className="event-speaker-role">{EVENT_SPEAKER.role}</p>
 
                   <button
                     type="button"
