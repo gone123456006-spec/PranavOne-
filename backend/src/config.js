@@ -3,6 +3,8 @@
  */
 
 const DEFAULT_ORIGINS = [
+  'https://www.pranavone.in',
+  'https://pranavone.in',
   'https://www.bizvyapar.in',
   'https://bizvyapar.in',
   'https://bizvyapar-in-frontend.vercel.app',

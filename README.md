@@ -49,7 +49,7 @@ npm run preview
 4. Add env vars from [`backend/.env.example`](./backend/.env.example)  
    (required: `CORS_ORIGIN`, `MONGODB_URI`, `AUTH_JWT_SECRET`).
 5. Keep-alive (prevent free-tier sleep):
-   - Set GitHub secret `KEEPALIVE_URL=https://YOUR-SERVICE.onrender.com/health`  
+   - Set GitHub secret `KEEPALIVE_URL=https://pranavone-api.onrender.com/health`  
      (workflow runs every minute), **or**
    - Set Render cron `KEEPALIVE_URL` to the same `/health` URL, **or**
    - Run `KEEPALIVE_URL=... npm run keepalive` on any always-on machine.
@@ -62,7 +62,7 @@ npm run preview
 In the frontend host (Vercel or elsewhere), set:
 
 ```
-VITE_API_BASE_URL=https://YOUR-SERVICE.onrender.com
+VITE_API_BASE_URL=https://pranavone-api.onrender.com
 ```
 
 Rebuild/redeploy the frontend after changing this.
@@ -80,9 +80,9 @@ Rebuild/redeploy the frontend after changing this.
 
 ### After deploy
 
-- Site: `https://your-app.vercel.app`
-- Health (Vercel API): `https://your-app.vercel.app/api/health`
-- Health (Render API): `https://YOUR-SERVICE.onrender.com/api/health`
+- Site: `https://www.pranavone.in`
+- Health (Vercel API): `https://www.pranavone.in/api/health`
+- Health (Render API): `https://pranavone-api.onrender.com/api/health`
 
 ### Notes
 
