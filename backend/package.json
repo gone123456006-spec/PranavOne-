@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "node --watch src/index.js",
+    "build": "echo \"Backend has no build step\"",
     "start": "node src/index.js",
     "check": "node scripts/check-env.js",
     "check:env": "node scripts/check-env.js",
