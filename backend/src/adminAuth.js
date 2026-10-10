@@ -87,7 +87,7 @@ export function verifyAdminPassword(password) {
 /** Returns { role, username } for valid credentials, otherwise null. Blank username means the main admin. */
 export function verifyAdminLogin(username, password) {
   const name = String(username || '').trim().toLowerCase()
-  if (!name || name === getAdminUsername()) {
+  if (!name || name === getAdminUsername() || name === getAdminDashboardName().toLowerCase()) {
     return verifyAdminPassword(password) ? { role: 'admin', username: getAdminUsername() } : null
   }
   const sub = getSubAdmin()
