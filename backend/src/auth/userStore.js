@@ -3,6 +3,7 @@
  * userId (UUID) is the permanent identity — never derived from name/email/phone.
  */
 import { randomUUID } from 'node:crypto'
+import { addWebsiteLead } from '../db/leadsStore.js'
 import { col, isMongoEnabled } from '../db/mongo.js'
 import {
   createRefreshTokenRaw,
@@ -31,6 +32,14 @@ function sanitizeName(name) {
     .trim()
     .replace(/\s+/g, ' ')
     .slice(0, 120)
+}
+
+function sanitizeLocation(location) {
+  const clean = String(location || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .slice(0, 120)
+  return clean || null
 }
 
 function validateEmailPhone({ email, phone }) {
@@ -72,6 +81,7 @@ function mapUser(doc) {
     email: doc.email,
     name: doc.name,
     phone: doc.phone,
+    location: doc.location || null,
     emailVerified: Boolean(doc.emailVerified),
     provider: doc.provider || 'local',
     status: doc.status || 'active',
@@ -187,6 +197,7 @@ export async function ensureTenantForUser(user) {
   const email = normalizeEmail(user.email)
   const name = sanitizeName(user.name) || null
   const phone = normalizePhone(user.phone)
+  const location = sanitizeLocation(user.location)
   const tenantId = userId
     ? `uid_${userId}`
     : `email_${Buffer.from(email || 'unknown').toString('hex').slice(0, 40)}`
@@ -209,6 +220,7 @@ export async function ensureTenantForUser(user) {
         uid: userId || existing?.uid || null,
         name: name || existing?.name || null,
         phone: phone || existing?.phone || null,
+        location: location || existing?.location || null,
         provider: 'local',
         emailVerified: true,
         status: 'active',
@@ -229,9 +241,10 @@ export async function ensureTenantForUser(user) {
   return id
 }
 
-export async function loginWithEmailPhone({ email, phone }) {
+export async function loginWithEmailPhone({ email, phone, location }) {
   assertMongoAuth()
   const { cleanEmail, cleanPhone } = validateEmailPhone({ email, phone })
+  const cleanLocation = sanitizeLocation(location)
 
   const existing = await findUserByEmail(cleanEmail)
   if (!existing || existing.status === 'disabled') {
@@ -260,6 +273,7 @@ export async function loginWithEmailPhone({ email, phone }) {
           lockedUntil: null,
           lastLoginAt: now,
           updatedAt: now,
+          ...(cleanLocation ? { location: cleanLocation } : {}),
         },
       },
     )
@@ -267,6 +281,7 @@ export async function loginWithEmailPhone({ email, phone }) {
 
   const user = mapUser({
     ...existing,
+    ...(cleanLocation ? { location: cleanLocation } : {}),
     lastLoginAt: now,
     updatedAt: now,
   })
@@ -277,13 +292,14 @@ export async function loginWithEmailPhone({ email, phone }) {
   return { user, tenantId, created: false, subscription }
 }
 
-export async function registerUser({ name, email, phone }) {
+export async function registerUser({ name, email, phone, location }) {
   assertMongoAuth()
   const { cleanName, cleanEmail, cleanPhone } = validateIdentity({
     name,
     email,
     phone,
   })
+  const cleanLocation = sanitizeLocation(location)
 
   const existingEmail = await findUserByEmail(cleanEmail)
   if (existingEmail) {
@@ -313,6 +329,7 @@ export async function registerUser({ name, email, phone }) {
         passwordHash: null,
         name: cleanName,
         phone: cleanPhone,
+        location: cleanLocation,
         emailVerified: false,
         provider: 'local',
         status: 'active',
@@ -357,6 +374,7 @@ export async function registerUser({ name, email, phone }) {
     email: cleanEmail,
     name: cleanName,
     phone: cleanPhone,
+    location: cleanLocation,
     emailVerified: false,
     provider: 'local',
     status: 'active',
@@ -366,6 +384,7 @@ export async function registerUser({ name, email, phone }) {
   })
   const tenantId = `uid_${user.id}`
   void ensureTenantForUser(user).catch(() => undefined)
+  void addWebsiteLead(user).catch(() => undefined)
 
   return {
     user,
@@ -462,10 +481,10 @@ export async function updateUserProfile(userId, patch = {}) {
   return user
 }
 
-export async function signInWithDetails({ name, email, phone }) {
+export async function signInWithDetails({ name, email, phone, location }) {
   const existing = await findUserByEmail(normalizeEmail(email))
-  if (existing) return loginWithEmailPhone({ email, phone })
-  return registerUser({ name, email, phone })
+  if (existing) return loginWithEmailPhone({ email, phone, location })
+  return registerUser({ name, email, phone, location })
 }
 
 export async function authenticateUser(input) {

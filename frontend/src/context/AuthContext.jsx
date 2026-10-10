@@ -284,11 +284,8 @@ export function AuthProvider({ children }) {
     return authRequest('/api/auth/login', { email, phone })
   }
 
-  async function signInWithDetails({ name, email, phone }) {
-    if (name) {
-      return register({ name, email, phone })
-    }
-    return login({ email, phone })
+  async function signInWithDetails({ name, email, phone, location }) {
+    return authRequest('/api/auth/continue', { name, email, phone, location })
   }
 
   async function signOut() {

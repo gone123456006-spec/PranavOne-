@@ -56,7 +56,7 @@ export function createApp() {
     res.json({
       status: 'ok',
       service: 'bizvyapar-backend',
-      message: 'BizVyapar API is running.',
+      message: 'Pranav One API is running.',
       health: '/health',
       ready: runtime.ready,
       database: isMongoEnabled() ? 'mongodb' : 'none',

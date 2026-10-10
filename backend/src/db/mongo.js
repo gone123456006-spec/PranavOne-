@@ -3,7 +3,12 @@
  * Uses the Stable API (same options as the Atlas “Connect” sample).
  * Set MONGODB_URI (and optionally MONGODB_DB) in env — never commit the real URI.
  */
+import dns from 'node:dns'
 import { MongoClient, ServerApiVersion } from 'mongodb'
+
+/** Some routers/ISPs return broken SRV answers (querySrv EBADRESP) for mongodb+srv URIs. */
+const FALLBACK_DNS = ['8.8.8.8', '1.1.1.1']
+let usingFallbackDns = false
 
 let client = null
 let db = null
@@ -77,6 +82,12 @@ export async function initMongo() {
       if (client) {
         void client.close().catch(() => undefined)
         client = null
+      }
+      if (!usingFallbackDns && /querySrv|queryTxt|EBADRESP/.test(error.message || '')) {
+        usingFallbackDns = true
+        dns.setServers(FALLBACK_DNS)
+        console.warn(`[db] DNS lookup failed (${error.message}) — retrying with ${FALLBACK_DNS.join(', ')}`)
+        return initMongo().then((result) => result.db)
       }
       throw error
     })
@@ -153,6 +164,12 @@ async function ensureMongoIndexes(database) {
     ]),
     database.collection('activity').createIndexes([
       { key: { tenantId: 1, at: -1 }, name: 'activity_tenant_at' },
+    ]),
+    database.collection('leads').createIndexes([
+      { key: { phone: 1 }, unique: true, name: 'leads_phone_unique' },
+      { key: { status: 1, updatedAt: -1 }, name: 'leads_status_updated' },
+      { key: { status: 1, reminderAt: 1 }, name: 'leads_status_reminder' },
+      { key: { convertedAt: -1 }, name: 'leads_converted_at' },
     ]),
     database.collection('analytics_sessions').createIndexes([
       { key: { sessionId: 1 }, name: 'analytics_session_id' },

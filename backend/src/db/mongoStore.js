@@ -62,6 +62,7 @@ function mapProfile(doc, tenantId) {
     uid: doc.uid || null,
     name: doc.name || null,
     phone: doc.phone || null,
+    location: doc.location || null,
     picture: doc.picture || null,
     provider: doc.provider || null,
     emailVerified: Boolean(doc.emailVerified),

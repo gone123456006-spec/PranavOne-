@@ -1,12 +1,11 @@
 /**
- * Runtime app settings (webinar link, workshop price).
+ * Runtime app settings (workshop price).
  * Stored in MongoDB; env vars are fallbacks until an admin saves overrides.
  */
 
 import { col, isMongoEnabled } from './db/mongo.js'
 
 const KEYS = {
-  webinarLink: 'webinar_link',
   workshopAmountPaise: 'workshop_amount_paise',
 }
 
@@ -17,7 +16,6 @@ const CACHE_MS = 2_000
 function envDefaults() {
   const paise = Number(process.env.WORKSHOP_AMOUNT_PAISE || 100)
   return {
-    webinarLink: String(process.env.WEBINAR_LINK || '').trim(),
     workshopAmountPaise: Number.isFinite(paise) && paise > 0 ? Math.round(paise) : 100,
     updatedAt: null,
     source: 'env',
@@ -37,24 +35,16 @@ function invalidateCache() {
 }
 
 async function readMongoSettings() {
-  const rows = await col('settings')
-    .find({ key: { $in: [KEYS.webinarLink, KEYS.workshopAmountPaise] } })
-    .toArray()
-  if (!rows.length) return null
+  const amountRow = await col('settings').findOne({ key: KEYS.workshopAmountPaise })
+  if (!amountRow) return null
 
-  const map = Object.fromEntries(rows.map((row) => [row.key, row]))
-  const defaults = envDefaults()
-  const webinarRow = map[KEYS.webinarLink]
-  const amountRow = map[KEYS.workshopAmountPaise]
-  const amount = Number(amountRow?.value)
+  const amount = Number(amountRow.value)
   return {
-    webinarLink:
-      String(webinarRow?.value || '').trim() || defaults.webinarLink,
     workshopAmountPaise:
       Number.isFinite(amount) && amount > 0
         ? Math.round(amount)
-        : defaults.workshopAmountPaise,
-    updatedAt: webinarRow?.updatedAt || amountRow?.updatedAt || null,
+        : envDefaults().workshopAmountPaise,
+    updatedAt: amountRow.updatedAt || null,
     source: 'mongodb',
   }
 }
@@ -90,16 +80,6 @@ export async function updateAppSettings(input = {}) {
   const current = await getAppSettings({ force: true })
   const next = { ...current }
 
-  if (Object.prototype.hasOwnProperty.call(input, 'webinarLink')) {
-    const link = String(input.webinarLink || '').trim()
-    if (link && !/^https?:\/\//i.test(link)) {
-      const error = new Error('Webinar link must start with http:// or https://')
-      error.status = 400
-      throw error
-    }
-    next.webinarLink = link
-  }
-
   if (Object.prototype.hasOwnProperty.call(input, 'workshopAmountPaise')) {
     const amount = Number(input.workshopAmountPaise)
     if (!Number.isFinite(amount) || amount < 100 || amount > 10_000_000) {
@@ -122,38 +102,21 @@ export async function updateAppSettings(input = {}) {
     next.workshopAmountPaise = Math.round(rupees * 100)
   }
 
-  const now = new Date()
-  await Promise.all([
-    col('settings').updateOne(
-      { key: KEYS.webinarLink },
-      {
-        $set: { value: String(next.webinarLink || ''), updatedAt: now },
-        $setOnInsert: { key: KEYS.webinarLink },
-      },
-      { upsert: true },
-    ),
-    col('settings').updateOne(
-      { key: KEYS.workshopAmountPaise },
-      {
-        $set: { value: String(next.workshopAmountPaise), updatedAt: now },
-        $setOnInsert: { key: KEYS.workshopAmountPaise },
-      },
-      { upsert: true },
-    ),
-  ])
+  await col('settings').updateOne(
+    { key: KEYS.workshopAmountPaise },
+    {
+      $set: { value: String(next.workshopAmountPaise), updatedAt: new Date() },
+      $setOnInsert: { key: KEYS.workshopAmountPaise },
+    },
+    { upsert: true },
+  )
 
   invalidateCache()
   return getAppSettings({ force: true })
 }
 
 export function toPublicSettings(settings) {
-  const raw = String(settings.webinarLink || '').trim()
-  const webinarLink =
-    !raw || /your-webinar-link|example\.com|localhost/i.test(raw)
-      ? 'https://www.bizvyapar.in'
-      : raw
   return {
-    webinarLink,
     amountPaise: settings.workshopAmountPaise,
     amountLabel: formatAmountLabel(settings.workshopAmountPaise),
     updatedAt: settings.updatedAt,

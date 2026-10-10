@@ -1,6 +1,5 @@
 import 'dotenv/config'
 import app from './app.js'
-import { getEmailConfigStatus } from './email.js'
 import { getHost, getPort, getRuntimeStatus } from './config.js'
 import { closeMongo, initMongo, isMongoConfigured, isMongoEnabled } from './db/mongo.js'
 
@@ -24,15 +23,29 @@ if (!isMongoEnabled() && (isRender || isProduction)) {
   process.exit(1)
 }
 
+const MONGO_RETRY_MS = 15_000
+let mongoRetryTimer = null
+
+function retryMongoLater() {
+  mongoRetryTimer = setTimeout(async () => {
+    try {
+      await initMongo()
+    } catch (error) {
+      console.error(`[db] MongoDB still unreachable (${error.message}) — retrying in ${MONGO_RETRY_MS / 1000}s`)
+      retryMongoLater()
+    }
+  }, MONGO_RETRY_MS)
+  mongoRetryTimer.unref()
+}
+
+if (isMongoConfigured() && !isMongoEnabled()) retryMongoLater()
+
 const server = app.listen(PORT, HOST, () => {
   const runtime = getRuntimeStatus()
-  console.log(`BizVyapar API listening on http://${HOST}:${PORT}`)
-  console.log('[email]', getEmailConfigStatus())
+  console.log(`Pranav One API listening on http://${HOST}:${PORT}`)
   console.log('[runtime]', {
     ready: runtime.ready,
     database: isMongoEnabled() ? 'mongodb' : 'none',
-    email: runtime.email,
-    webinarLink: runtime.webinarLink,
     cors: runtime.cors,
     missing: runtime.missing,
   })
@@ -47,6 +60,7 @@ const server = app.listen(PORT, HOST, () => {
 
 function shutdown(signal) {
   console.log(`[shutdown] ${signal} received, closing server...`)
+  clearTimeout(mongoRetryTimer)
   server.close(async () => {
     await closeMongo().catch(() => undefined)
     process.exit(0)

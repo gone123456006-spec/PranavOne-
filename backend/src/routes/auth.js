@@ -84,6 +84,7 @@ function publicUser(user, tenantId, subscription) {
     email: user.email,
     name: user.name,
     phone: user.phone,
+    location: user.location || null,
     emailVerified: Boolean(user.emailVerified),
     provider: user.provider || 'local',
     status: user.status || 'active',
@@ -116,6 +117,7 @@ async function completeAuth(req, res, authFn) {
       name: req.body?.name,
       email: req.body?.email,
       phone: req.body?.phone,
+      location: req.body?.location,
     })
 
     const [tokens, subscription] = await Promise.all([
@@ -171,13 +173,13 @@ authRouter.post('/login', authRateLimit(), (req, res) =>
 
 /** POST /api/auth/continue — simple create-or-sign-in (name optional if account exists) */
 authRouter.post('/continue', authRateLimit(), (req, res) =>
-  completeAuth(req, res, async ({ name, email, phone }) => {
+  completeAuth(req, res, async ({ name, email, phone, location }) => {
     try {
-      return await signInWithDetails({ name, email, phone })
+      return await signInWithDetails({ name, email, phone, location })
     } catch (error) {
       if (/full name/i.test(error.message || '')) {
         try {
-          return await loginWithEmailPhone({ email, phone })
+          return await loginWithEmailPhone({ email, phone, location })
         } catch {
           throw error
         }

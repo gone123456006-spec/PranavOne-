@@ -33,15 +33,6 @@ export function getAllowedOrigins() {
 }
 
 export function getRuntimeStatus() {
-  const email = Boolean(
-    (process.env.SMTP_USER || process.env.BREVO_SMTP_LOGIN || process.env.GMAIL_USER) &&
-      (process.env.SMTP_PASS ||
-        process.env.SMTP_PASSWORD ||
-        process.env.BREVO_SMTP_KEY ||
-        process.env.GMAIL_APP_PASSWORD) &&
-      (process.env.SMTP_FROM || process.env.SMTP_FROM_EMAIL || process.env.EMAIL_FROM),
-  )
-  const webinarLink = Boolean(String(process.env.WEBINAR_LINK || '').trim())
   const cors = getAllowedOrigins().length > 0
   const database = Boolean(
     String(process.env.MONGODB_URI || process.env.MONGO_URI || '').trim(),
@@ -49,19 +40,15 @@ export function getRuntimeStatus() {
   const authJwt = Boolean(String(process.env.AUTH_JWT_SECRET || '').trim())
 
   const missing = []
-  if (!email) missing.push('SMTP_USER/SMTP_PASS')
-  if (!webinarLink) missing.push('WEBINAR_LINK')
   if (!cors) missing.push('CORS_ORIGIN')
   if (!database) missing.push('MONGODB_URI')
   if (!authJwt) missing.push('AUTH_JWT_SECRET')
 
   return {
-    email,
-    webinarLink,
     cors,
     database,
     authJwt,
-    ready: email && webinarLink && cors && database && authJwt,
+    ready: cors && database && authJwt,
     missing,
   }
 }

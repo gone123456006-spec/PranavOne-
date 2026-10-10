@@ -5,6 +5,7 @@ import './index.css'
 import App from './App.jsx'
 import TredsDash from './pages/TredsDash.jsx'
 import TermsConditions from './pages/TermsConditions.jsx'
+import RefundPolicy from './pages/RefundPolicy.jsx'
 import AnalyticsRouteTracker from './components/AnalyticsRouteTracker.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 
@@ -17,6 +18,8 @@ createRoot(document.getElementById('root')).render(
           <Route path="/" element={<App />} />
           <Route path="/terms" element={<TermsConditions />} />
           <Route path="/terms-and-conditions" element={<TermsConditions />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
+          <Route path="/policy" element={<RefundPolicy />} />
           <Route path="/tredsdash" element={<TredsDash />} />
           <Route path="/admin" element={<Navigate to="/tredsdash" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />

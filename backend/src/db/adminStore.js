@@ -13,6 +13,7 @@ function mapAdminUser(profile) {
       name: profile?.name || null,
       email: profile?.email || null,
       phone: profile?.phone || null,
+      location: profile?.location || null,
       uid: profile?.uid || null,
       provider: profile?.provider || null,
       emailVerified: Boolean(profile?.emailVerified),

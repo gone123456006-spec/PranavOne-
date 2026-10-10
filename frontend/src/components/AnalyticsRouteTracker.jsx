@@ -4,11 +4,13 @@ import { trackMetaPageView } from '../lib/analytics.js'
 import { trackSiteEngage, trackSitePageView } from '../lib/visitorTracking.js'
 
 const PAGE_TITLES = {
-  '/': 'BizVyapar — Join the free webinar waitlist',
-  '/terms': 'Terms & Conditions — BizVyapar',
-  '/terms-and-conditions': 'Terms & Conditions — BizVyapar',
-  '/tredsdash': 'TredsDash — BizVyapar Admin',
-  '/admin': 'TredsDash — BizVyapar Admin',
+  '/': 'Pranav One — Tally + Computer Course | 100% Placement Opportunities',
+  '/terms': 'Terms & Conditions — Pranav One',
+  '/terms-and-conditions': 'Terms & Conditions — Pranav One',
+  '/refund-policy': 'Refund Policy & Job Assistance — Pranav One',
+  '/policy': 'Refund Policy & Job Assistance — Pranav One',
+  '/tredsdash': 'TredsDash — Pranav One Admin',
+  '/admin': 'TredsDash — Pranav One Admin',
 }
 
 export default function AnalyticsRouteTracker() {

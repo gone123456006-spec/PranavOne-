@@ -15,8 +15,6 @@ console.log(
     {
       ready: runtime.ready,
       checks: {
-        email: runtime.email,
-        webinarLink: runtime.webinarLink,
         cors: runtime.cors,
         database: runtime.database,
         authJwt: runtime.authJwt,

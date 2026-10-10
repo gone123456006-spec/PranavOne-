@@ -1,6 +1,7 @@
 import { apiUrl } from '../../lib/api.js'
 
 const TOKEN_KEY = 'tredsdash_token'
+const SERVER_UNREACHABLE = 'Cannot reach the server. Make sure the backend is running.'
 
 export function getAdminToken() {
   return localStorage.getItem(TOKEN_KEY) || ''
@@ -19,17 +20,22 @@ export async function adminFetch(path, { token, method = 'GET', body, raw = fals
   if (token) headers.Authorization = `Bearer ${token}`
   if (body !== undefined) headers['Content-Type'] = 'application/json'
 
-  const res = await fetch(apiUrl(path), {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-    cache: 'no-store',
-  })
+  let res
+  try {
+    res = await fetch(apiUrl(path), {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      cache: 'no-store',
+    })
+  } catch {
+    throw new Error(SERVER_UNREACHABLE)
+  }
 
   if (raw) {
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      const error = new Error(data.message || 'Request failed')
+      const error = new Error(data.message || SERVER_UNREACHABLE)
       error.status = res.status
       throw error
     }
@@ -38,7 +44,7 @@ export async function adminFetch(path, { token, method = 'GET', body, raw = fals
 
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    const error = new Error(data.message || 'Request failed')
+    const error = new Error(data.message || SERVER_UNREACHABLE)
     error.status = res.status
     throw error
   }
