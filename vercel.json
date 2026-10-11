@@ -4,15 +4,8 @@
   "buildCommand": "npm run build && node scripts/copy-frontend-dist.mjs",
   "outputDirectory": "dist",
   "framework": null,
-  "functions": {
-    "api/index.js": {
-      "maxDuration": 30,
-      "memory": 1024,
-      "includeFiles": "backend/**"
-    }
-  },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/api/:path*", "destination": "https://pranavone-api.onrender.com/api/:path*" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "headers": [

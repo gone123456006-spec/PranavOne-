@@ -5,9 +5,9 @@
  */
 const PRODUCTION_API_URL = 'https://pranavone-api.onrender.com'
 
-const RAW_BASE = String(
-  import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? PRODUCTION_API_URL : ''),
-).trim()
+const RAW_BASE =
+  String(import.meta.env.VITE_API_BASE_URL || '').trim() ||
+  (import.meta.env.PROD ? PRODUCTION_API_URL : '')
 
 export function getApiBaseUrl() {
   return RAW_BASE.replace(/\/$/, '')

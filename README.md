@@ -6,9 +6,8 @@ Waitlist webinar app (React + Vite frontend, Express API).
 
 ```
 bizvyapar/
-├── api/          # Vercel serverless entry (Express)
 ├── frontend/     # React + Vite
-├── backend/      # Express API (local + shared with Vercel)
+├── backend/      # Express API (local + Render)
 ├── vercel.json
 └── package.json
 ```
@@ -67,22 +66,19 @@ VITE_API_BASE_URL=https://pranavone-api.onrender.com
 
 Rebuild/redeploy the frontend after changing this.
 
-## Deploy on Vercel (frontend + optional combined API)
+## Deploy on Vercel (frontend only)
 
 1. Push this repo to GitHub.
 2. Import the repo in [Vercel](https://vercel.com) (root directory = repo root).
-3. Vercel will use `vercel.json` (`build` → `frontend/dist`, `/api` → Express).
-4. Add all variables from [`.env.example`](./.env.example) in  
-   **Project → Settings → Environment Variables** (Production + Preview).
-5. If API is on Render, set `VITE_API_BASE_URL` to the Render URL and you can skip backend env on Vercel.
-6. If API stays on Vercel, set `CORS_ORIGIN` to your live URL.
-7. Deploy.
+3. Vercel will use `vercel.json` (`build` → `frontend/dist`, `/api/*` → proxied to the Render API).
+4. The API runs only on Render, so backend secrets (`ADMIN_PASSWORD`, `MONGODB_URI`, …) belong in Render, not Vercel.
+5. Deploy.
 
 ### After deploy
 
 - Site: `https://www.pranavone.in`
-- Health (Vercel API): `https://www.pranavone.in/api/health`
-- Health (Render API): `https://pranavone-api.onrender.com/api/health`
+- Health (Render API): `https://pranavone-api.onrender.com/api/health`  
+  (`https://www.pranavone.in/api/health` proxies to the same server)
 
 ### Notes
 
