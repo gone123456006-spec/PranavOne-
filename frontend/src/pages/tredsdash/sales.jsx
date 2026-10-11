@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Bell,
   ClockCounterClockwise,
   CurrencyInr,
+  DotsThreeVertical,
   FileArrowDown,
   PencilSimple,
   Phone,
@@ -903,6 +904,100 @@ function isRowControl(target) {
   return Boolean(target.closest('button, a, select, input, textarea, label'))
 }
 
+function RowActionsMenu({ leadName, active, items }) {
+  const [position, setPosition] = useState(null)
+  const buttonRef = useRef(null)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    if (!position) return undefined
+    const close = () => setPosition(null)
+    const onPointerDown = (event) => {
+      if (menuRef.current?.contains(event.target) || buttonRef.current?.contains(event.target)) return
+      close()
+    }
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        close()
+        buttonRef.current?.focus()
+      }
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    window.addEventListener('resize', close)
+    window.addEventListener('scroll', close, true)
+    menuRef.current?.querySelector('[role="menuitem"]')?.focus()
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('resize', close)
+      window.removeEventListener('scroll', close, true)
+    }
+  }, [position])
+
+  function openMenu() {
+    if (position) {
+      setPosition(null)
+      return
+    }
+    const rect = buttonRef.current.getBoundingClientRect()
+    const menuHeight = items.length * 36 + 8
+    const openUp = rect.bottom + menuHeight > window.innerHeight && rect.top > menuHeight
+    setPosition({
+      top: openUp ? rect.top - menuHeight - 4 : rect.bottom + 4,
+      right: Math.max(8, window.innerWidth - rect.right),
+    })
+  }
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        className={`td-sheet-icon ${active || position ? 'is-active' : ''}`}
+        onClick={openMenu}
+        title="More actions"
+        aria-label={`More actions for ${leadName}`}
+        aria-haspopup="menu"
+        aria-expanded={Boolean(position)}
+      >
+        <DotsThreeVertical size={18} weight="bold" aria-hidden="true" />
+      </button>
+      {position ? (
+        <div ref={menuRef} className="td-row-menu" role="menu" style={{ top: position.top, right: position.right }}>
+          {items.map(({ id, label, icon: Icon, iconWeight, tone, href, onSelect }) => {
+            const className = `td-row-menu-item ${tone ? `td-row-menu-item--${tone}` : ''}`
+            const content = (
+              <>
+                <Icon size={16} weight={iconWeight} aria-hidden="true" />
+                {label}
+              </>
+            )
+            return href ? (
+              <a key={id} role="menuitem" className={className} href={href} target="_blank" rel="noreferrer" onClick={() => setPosition(null)}>
+                {content}
+              </a>
+            ) : (
+              <button
+                key={id}
+                type="button"
+                role="menuitem"
+                className={className}
+                onClick={() => {
+                  setPosition(null)
+                  onSelect()
+                }}
+              >
+                {content}
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
+    </>
+  )
+}
+
 function LeadRow({ lead, rowNumber, columns, batches, token, onAuthError, onChanged, converted, canDelete }) {
   const [panel, setPanel] = useState('')
   const [busy, setBusy] = useState(false)
@@ -1032,28 +1127,18 @@ function LeadRow({ lead, rowNumber, columns, batches, token, onAuthError, onChan
               Log call
             </button>
           ) : null}
-          {!converted ? (
-            <button type="button" className={`td-sheet-icon ${panel === 'reminder' ? 'is-active' : ''}`} onClick={() => toggle('reminder')} title="Set reminder" aria-label="Set reminder">
-              <Bell size={16} aria-hidden="true" />
-            </button>
-          ) : null}
-          <button type="button" className={`td-sheet-icon ${panel === 'edit' ? 'is-active' : ''}`} onClick={() => toggle('edit')} title="Edit details" aria-label="Edit details">
-            <PencilSimple size={16} aria-hidden="true" />
-          </button>
-          <button type="button" className={`td-sheet-icon ${panel === 'payment' ? 'is-active' : ''}`} onClick={() => toggle('payment')} title="Payments" aria-label="Payments">
-            <CurrencyInr size={16} aria-hidden="true" />
-          </button>
-          <a className="td-sheet-icon td-sheet-icon--wa" href={`https://wa.me/91${lead.phone}`} target="_blank" rel="noreferrer" title="WhatsApp" aria-label={`WhatsApp ${lead.name}`}>
-            <WhatsappLogo size={16} weight="fill" aria-hidden="true" />
-          </a>
-          <button type="button" className={`td-sheet-icon ${panel === 'history' ? 'is-active' : ''}`} onClick={() => toggle('history')} title="History" aria-label="History">
-            <ClockCounterClockwise size={16} aria-hidden="true" />
-          </button>
-          {canDelete ? (
-            <button type="button" className="td-sheet-icon td-sheet-icon--danger" onClick={() => void remove()} title="Delete" aria-label="Delete lead">
-              <Trash size={16} aria-hidden="true" />
-            </button>
-          ) : null}
+          <RowActionsMenu
+            leadName={lead.name}
+            active={['reminder', 'edit', 'payment', 'history'].includes(panel)}
+            items={[
+              ...(!converted ? [{ id: 'reminder', label: 'Set reminder', icon: Bell, onSelect: () => toggle('reminder') }] : []),
+              { id: 'edit', label: 'Edit details', icon: PencilSimple, onSelect: () => toggle('edit') },
+              { id: 'payment', label: 'Payments', icon: CurrencyInr, onSelect: () => toggle('payment') },
+              { id: 'whatsapp', label: 'WhatsApp', icon: WhatsappLogo, iconWeight: 'fill', tone: 'wa', href: `https://wa.me/91${lead.phone}` },
+              { id: 'history', label: 'History', icon: ClockCounterClockwise, onSelect: () => toggle('history') },
+              ...(canDelete ? [{ id: 'delete', label: 'Delete', icon: Trash, tone: 'danger', onSelect: () => void remove() }] : []),
+            ]}
+          />
         </td>
       </tr>
       {panel ? (
