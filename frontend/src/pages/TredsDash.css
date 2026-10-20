@@ -1033,7 +1033,7 @@
 
 .td-sheet th {
   position: sticky;
-  top: 24px;
+  top: 0;
   z-index: 2;
   padding-top: 6px;
   padding-bottom: 6px;
@@ -1043,6 +1043,10 @@
   color: var(--td-ink);
   font-size: 0.78rem;
   font-weight: 600;
+}
+
+.td-sheet thead tr.td-sheet-letters + tr th {
+  top: 24px;
 }
 
 .td-sheet th:last-child,

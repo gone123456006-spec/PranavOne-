@@ -685,7 +685,7 @@ export function SettingsSection({ token, onAuthError }) {
               id="td-adm-fee"
               className="td-input"
               type="number"
-              min="100"
+              min="1"
               max="100000"
               step="1"
               value={admissionFeeRupees}
@@ -703,7 +703,7 @@ export function SettingsSection({ token, onAuthError }) {
               id="td-adm-orig"
               className="td-input"
               type="number"
-              min="100"
+              min="1"
               max="100000"
               step="1"
               value={admissionOriginalFeeRupees}
@@ -1071,7 +1071,6 @@ export function AdmissionsSection({ token, onAuthError }) {
             )}
           </tbody>
         </table>
-        <SheetLetters count={13} />
       </div>
 
       <Pagination
