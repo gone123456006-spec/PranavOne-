@@ -18,6 +18,7 @@ import {
   listVisitorsAdmin,
   refreshAnalyticsAggregates,
 } from '../db/analyticsStore.js'
+import { listAdmissionsAdmin } from '../db/admissionsStore.js'
 import {
   addLeadPayment,
   createLead,
@@ -32,6 +33,7 @@ import {
 import { buildUsersExcelBuffer } from '../exportUsersExcel.js'
 import {
   formatAmountLabel,
+  formatRupeesLabel,
   getAppSettings,
   toPublicSettings,
   updateAppSettings,
@@ -295,6 +297,10 @@ adminRouter.get('/settings', requireAdmin, async (_req, res, next) => {
         amountPaise: settings.workshopAmountPaise,
         amountRupees: settings.workshopAmountPaise / 100,
         amountLabel: formatAmountLabel(settings.workshopAmountPaise),
+        admissionFeeRupees: settings.admissionFeeRupees,
+        admissionOriginalFeeRupees: settings.admissionOriginalFeeRupees,
+        admissionFeeLabel: formatRupeesLabel(settings.admissionFeeRupees),
+        admissionOriginalFeeLabel: formatRupeesLabel(settings.admissionOriginalFeeRupees),
         updatedAt: settings.updatedAt,
         source: settings.source,
       },
@@ -316,6 +322,12 @@ adminRouter.put('/settings', requireAdmin, async (req, res, next) => {
     if (Object.prototype.hasOwnProperty.call(body, 'amountRupees')) {
       patch.amountRupees = body.amountRupees
     }
+    if (Object.prototype.hasOwnProperty.call(body, 'admissionFeeRupees')) {
+      patch.admissionFeeRupees = body.admissionFeeRupees
+    }
+    if (Object.prototype.hasOwnProperty.call(body, 'admissionOriginalFeeRupees')) {
+      patch.admissionOriginalFeeRupees = body.admissionOriginalFeeRupees
+    }
 
     if (!Object.keys(patch).length) {
       return res.status(400).json({ message: 'No settings to update.' })
@@ -329,11 +341,30 @@ adminRouter.put('/settings', requireAdmin, async (req, res, next) => {
         amountPaise: settings.workshopAmountPaise,
         amountRupees: settings.workshopAmountPaise / 100,
         amountLabel: formatAmountLabel(settings.workshopAmountPaise),
+        admissionFeeRupees: settings.admissionFeeRupees,
+        admissionOriginalFeeRupees: settings.admissionOriginalFeeRupees,
+        admissionFeeLabel: formatRupeesLabel(settings.admissionFeeRupees),
+        admissionOriginalFeeLabel: formatRupeesLabel(settings.admissionOriginalFeeRupees),
         updatedAt: settings.updatedAt,
         source: settings.source,
       },
       public: toPublicSettings(settings),
     })
+  } catch (error) {
+    next(error)
+  }
+})
+
+adminRouter.get('/admissions', requireAdmin, async (req, res, next) => {
+  try {
+    const data = await listAdmissionsAdmin({
+      q: req.query.q,
+      status: req.query.status || 'all',
+      courseMode: req.query.courseMode || '',
+      page: req.query.page,
+      pageSize: req.query.pageSize,
+    })
+    res.json({ dashboard: getAdminDashboardName(), ...data })
   } catch (error) {
     next(error)
   }

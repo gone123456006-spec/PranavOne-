@@ -2096,3 +2096,246 @@
     font-size: 1.1rem;
   }
 }
+
+/* Admissions details modal & badges */
+.td-admission-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(31, 122, 77, 0.1);
+  color: #15803d;
+  border: 1px solid rgba(31, 122, 77, 0.2);
+}
+
+.td-mode-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.td-mode-chip--online {
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+}
+
+.td-mode-chip--offline {
+  background: rgba(147, 51, 234, 0.1);
+  color: #7e22ce;
+}
+
+.td-quick-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.td-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid var(--td-line);
+  background: var(--td-surface);
+  color: var(--td-text);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.td-icon-btn:hover {
+  background: var(--td-hover, #f1f5f9);
+  color: var(--td-accent, #1f7a4d);
+}
+
+.td-icon-btn--wa:hover {
+  color: #25d366;
+  border-color: #25d366;
+  background: #f0fdf4;
+}
+
+.td-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.td-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 620px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  animation: tdModalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes tdModalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.td-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+
+.td-modal-head h3 {
+  margin: 0 0 4px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.td-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.td-modal-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.td-modal-body {
+  padding: 22px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.td-modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+
+.td-slip-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.td-slip-num-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #15803d;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.td-slip-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #14532d;
+}
+
+.td-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.td-detail-section h4 {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.04em;
+}
+
+.td-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+}
+
+.td-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.td-detail-item--full {
+  grid-column: 1 / -1;
+}
+
+.td-detail-k {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.td-detail-v {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.td-copy-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.td-copy-inline:hover {
+  color: #15803d;
+}

@@ -6,6 +6,7 @@ import App from './App.jsx'
 import TredsDash from './pages/TredsDash.jsx'
 import TermsConditions from './pages/TermsConditions.jsx'
 import RefundPolicy from './pages/RefundPolicy.jsx'
+import GetAdmission from './pages/GetAdmission.jsx'
 import AnalyticsRouteTracker from './components/AnalyticsRouteTracker.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 
@@ -16,6 +17,8 @@ createRoot(document.getElementById('root')).render(
       <AuthProvider>
         <Routes>
           <Route path="/" element={<App />} />
+          <Route path="/get-admission" element={<GetAdmission />} />
+          <Route path="/admission" element={<Navigate to="/get-admission" replace />} />
           <Route path="/terms" element={<TermsConditions />} />
           <Route path="/terms-and-conditions" element={<TermsConditions />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />

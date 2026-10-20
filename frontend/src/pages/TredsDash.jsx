@@ -6,6 +6,7 @@ import {
   FileArrowDown,
   GearSix,
   Globe,
+  GraduationCap,
   List,
   PhoneCall,
   Pulse,
@@ -21,6 +22,7 @@ import {
   setAdminToken,
 } from './tredsdash/adminApi.js'
 import {
+  AdmissionsSection,
   OverviewSection,
   RegisteredUsersSection,
   ReportsSection,
@@ -39,6 +41,7 @@ const NAV = [
   { id: 'users', label: 'Registered Users', group: 'Users', icon: Users },
   { id: 'active-users', label: 'Active Users', group: 'Users', icon: Pulse },
   { id: 'subscribers', label: 'Subscribed Users', group: 'Users', icon: Crown },
+  { id: 'admissions', label: 'Admissions', group: 'Website', icon: GraduationCap },
   { id: 'visitors', label: 'Visitors', group: 'Website', icon: Eye },
   { id: 'reports', label: 'Exports', group: 'Website', icon: FileArrowDown },
   { id: 'settings', label: 'Settings', group: 'Website', icon: GearSix },
@@ -304,6 +307,10 @@ export default function TredsDash() {
               title="Subscribed Users"
               subtitle="Users with an active subscription"
             />
+          ) : null}
+
+          {!isSubAdmin && !selectedUserId && visibleSection === 'admissions' ? (
+            <AdmissionsSection token={token} onAuthError={onAuthError} />
           ) : null}
 
           {!isSubAdmin && !selectedUserId && visibleSection === 'visitors' ? (

@@ -1,0 +1,781 @@
+/* Get Admission page — same shell as Get Started popup, with working scroll */
+
+.get-admission-page.popup-overlay.join-form-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  max-width: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  margin: 0;
+  padding: 24px 12px 40px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
+}
+
+.get-admission-page .join-form-modal {
+  width: min(100%, 440px);
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+
+/* Course mode chips — match join-card mint theme */
+.admission-mode--join {
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-inline-size: 0;
+}
+
+.admission-mode--join legend {
+  margin: 0 0 8px;
+  padding: 0;
+  color: #1f2a2e;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admission-mode--join .admission-mode-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.admission-mode--join .admission-mode-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: #fff;
+  color: #1f2a2e;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(16, 48, 40, 0.04);
+  cursor: pointer;
+}
+
+.admission-mode--join .admission-mode-option.is-selected {
+  border-color: #2aa889;
+  background: #fff;
+  color: #1f7a4d;
+  box-shadow: 0 0 0 2px rgba(42, 168, 137, 0.2);
+}
+
+.admission-mode--join .admission-mode-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Course details inside join-card */
+.join-card .admission-course-card {
+  margin: 0;
+  padding: 14px 14px 12px;
+  border: none;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 48, 40, 0.04);
+}
+
+.join-card .admission-course-card h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f7a4d;
+}
+
+.join-card .admission-course-card p {
+  margin: 0 0 10px;
+  color: #5f6b70;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.join-card .admission-course-card ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.join-card .admission-course-card li {
+  color: #3d4a44;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.join-card .admission-course-card li strong {
+  color: #1f2a2e;
+}
+
+.join-card .admission-fee-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.join-card .admission-fee-original {
+  color: #8a9599;
+  text-decoration: line-through;
+}
+
+.join-card .admission-fee-offer {
+  color: #1f7a4d;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+/* Admission Success & Receipt Panel */
+.admission-success-card {
+  text-align: left;
+}
+
+.admission-success-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #e6f6ee;
+  color: #187144;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.admission-number-card {
+  margin: 14px 0 16px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+}
+
+.admission-number-label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: #15803d;
+  margin-bottom: 4px;
+}
+
+.admission-number-value-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admission-number-value {
+  font-size: 1.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #14532d;
+  letter-spacing: 0.04em;
+}
+
+.admission-copy-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #86efac;
+  background: #fff;
+  color: #15803d;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admission-copy-btn:hover {
+  background: #dcfce7;
+}
+
+.admission-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 14px 0;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.admission-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admission-detail-item--full {
+  grid-column: 1 / -1;
+  padding-top: 6px;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.admission-detail-label {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.admission-detail-item strong,
+.admission-detail-item span {
+  font-size: 13.5px;
+  color: #0f172a;
+}
+
+.admission-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px !important;
+  word-break: break-all;
+}
+
+.admission-amount-paid {
+  color: #166534 !important;
+  font-size: 15px !important;
+}
+
+.admission-note {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #475569;
+  margin: 12px 0 16px;
+}
+
+.admission-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.btn-trial--secondary {
+  background: #f1f5f9 !important;
+  color: #1e293b !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: none !important;
+}
+
+.btn-trial--secondary:hover {
+  background: #e2e8f0 !important;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .admission-success-card,
+  .admission-success-card * {
+    visibility: visible;
+  }
+  .admission-success-card {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none;
+    border: none;
+  }
+  .admission-actions,
+  .admission-copy-btn {
+    display: none !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .get-admission-page.popup-overlay.join-form-overlay {
+    padding: 12px 12px 32px;
+    align-items: flex-start;
+  }
+
+  .admission-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CONGRATULATIONS POPUP — Payment Success
+   ════════════════════════════════════════════════════════════════ */
+
+.adm-congrats-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(5, 20, 10, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px 12px 40px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Confetti */
+.adm-confetti-wrap {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10000;
+  overflow: hidden;
+}
+
+.adm-confetti-bit {
+  position: absolute;
+  top: -20px;
+  animation: adm-fall linear forwards;
+  border-radius: 2px;
+}
+
+@keyframes adm-fall {
+  0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* Modal box */
+.adm-congrats-modal {
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 520px;
+  padding: 28px 24px 24px;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.35);
+  position: relative;
+  animation: admModalPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  flex-shrink: 0;
+}
+
+@keyframes admModalPop {
+  from { opacity: 0; transform: scale(0.85) translateY(30px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Close button */
+.adm-congrats-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.15s;
+}
+
+.adm-congrats-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Header */
+.adm-congrats-head {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.adm-congrats-emoji {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 8px;
+  animation: admBounce 0.6s ease 0.3s both;
+}
+
+@keyframes admBounce {
+  0%   { transform: scale(0); }
+  60%  { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.adm-congrats-title {
+  font-size: 28px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+}
+
+.adm-congrats-sub {
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.adm-green-bold {
+  color: #15803d;
+  font-weight: 800;
+}
+
+.adm-name-highlight {
+  color: #1f7a4d;
+  font-weight: 700;
+}
+
+/* Admission number spotlight */
+.adm-number-block {
+  background: linear-gradient(135deg, #14532d 0%, #166534 50%, #1f7a4d 100%);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.adm-number-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: #86efac;
+  margin-bottom: 4px;
+}
+
+.adm-number-value {
+  font-size: 26px;
+  font-weight: 900;
+  color: #fff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.06em;
+}
+
+.adm-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(134, 239, 172, 0.4);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.adm-copy-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+.adm-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.adm-copy-check {
+  color: #86efac;
+}
+
+/* Receipt card */
+.adm-receipt-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.adm-inst-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #1f7a4d;
+}
+
+.adm-inst-logo {
+  font-size: 18px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.adm-inst-stamp {
+  font-size: 12px;
+  font-weight: 800;
+  color: #86efac;
+  border: 2px solid #86efac;
+  padding: 3px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.06em;
+}
+
+.adm-receipt-section {
+  padding: 14px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.adm-receipt-section:last-child {
+  border-bottom: none;
+}
+
+.adm-receipt-sec-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-bottom: 10px;
+}
+
+.adm-receipt-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+}
+
+.adm-rf {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.adm-rf--full {
+  grid-column: 1 / -1;
+}
+
+.adm-rf-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.adm-rf-value {
+  font-size: 13.5px;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.adm-rf-amount {
+  color: #166534;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.adm-rf-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  word-break: break-all;
+}
+
+/* Course rows */
+.adm-course-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.adm-course-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 12.5px;
+}
+
+.adm-course-row:last-child {
+  border-bottom: none;
+}
+
+.adm-course-row span {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.adm-course-row strong {
+  color: #0f172a;
+  text-align: right;
+}
+
+/* Address block */
+.adm-address-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #fff;
+  border-top: 1px solid #e2e8f0;
+}
+
+.adm-address-pin {
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.adm-address-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f7a4d;
+  margin-bottom: 4px;
+}
+
+.adm-address-line {
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.7;
+}
+
+/* Next steps */
+.adm-next-steps {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.adm-next-steps span {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.adm-next-steps p {
+  color: #92400e;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.adm-next-steps strong {
+  font-weight: 700;
+}
+
+/* Action buttons */
+.adm-action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.adm-btn-download {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 16px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #1f7a4d, #15803d);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(31, 122, 77, 0.35);
+}
+
+.adm-btn-download svg {
+  width: 18px;
+  height: 18px;
+  fill: #fff;
+  flex-shrink: 0;
+}
+
+.adm-btn-download:hover {
+  background: linear-gradient(135deg, #166534, #14532d);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(31, 122, 77, 0.45);
+}
+
+.adm-btn-download:active {
+  transform: translateY(0);
+}
+
+.adm-btn-done {
+  padding: 13px 16px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.adm-btn-done:hover {
+  background: #e2e8f0;
+}
+
+/* Reminder text */
+.adm-save-reminder {
+  text-align: center;
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+
+.adm-save-reminder strong {
+  color: #1f7a4d;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .adm-congrats-modal {
+    padding: 22px 16px 20px;
+    border-radius: 16px;
+  }
+
+  .adm-congrats-title {
+    font-size: 22px;
+  }
+
+  .adm-number-value {
+    font-size: 20px;
+  }
+
+  .adm-receipt-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .adm-rf--full {
+    grid-column: 1;
+  }
+
+  .adm-action-row {
+    grid-template-columns: 1fr;
+  }
+}
+

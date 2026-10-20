@@ -272,6 +272,34 @@
   background: var(--surface-variant);
 }
 
+.nav-admission {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 999px;
+  background: #1f7a4d;
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.nav-admission:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.nav-admission:focus-visible {
+  outline: 2px solid #1f7a4d;
+  outline-offset: 2px;
+}
+
 .nav-signin {
   display: inline-flex;
   align-items: center;
@@ -553,6 +581,13 @@
   .nav-link {
     padding: 0 8px;
     font-size: 13px;
+  }
+
+  .nav-admission {
+    min-height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+    white-space: nowrap;
   }
 
   .nav-signin {
@@ -949,15 +984,24 @@
   text-align: center;
 }
 
+.hero-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+  margin-bottom: 36px;
+}
+
 .hero-cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 220px;
+  min-width: 180px;
   min-height: 52px;
-  margin-top: 16px;
-  margin-bottom: 36px;
-  padding: 0 36px;
+  margin: 0;
+  padding: 0 28px;
   border: none;
   border-radius: 999px;
   background: #ffde03;
@@ -969,6 +1013,11 @@
   letter-spacing: -0.01em;
   cursor: pointer;
   transition: filter 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.hero-cta--admission {
+  background: #1f7a4d;
+  color: #fff;
 }
 
 .hero-cta:hover {
@@ -3870,6 +3919,149 @@
 .join-form-close:hover {
   background: rgba(0, 0, 0, 0.06);
   color: #1f2a2e;
+}
+
+.admission-modal {
+  width: min(100%, 460px);
+  padding: 28px 22px 22px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+}
+
+.admission-modal h2 {
+  margin: 0 0 6px;
+  font-size: 1.45rem;
+  color: #14231a;
+}
+
+.admission-lead {
+  margin: 0 0 16px;
+  color: #5f6b70;
+  font-size: 0.95rem;
+}
+
+.admission-course-card {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border: 1px solid #d7e5db;
+  border-radius: 12px;
+  background: #f4faf6;
+}
+
+.admission-course-card h3 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  color: #1f7a4d;
+}
+
+.admission-course-card ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admission-course-card li {
+  margin: 0 0 8px;
+  color: #243028;
+  font-size: 0.95rem;
+}
+
+.admission-course-card li:last-child {
+  margin-bottom: 0;
+}
+
+.admission-fee-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.admission-fee-original {
+  color: #8a9599;
+  text-decoration: line-through;
+}
+
+.admission-fee-offer {
+  color: #1f7a4d;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.admission-mode {
+  margin: 0 0 8px;
+  padding: 0;
+  border: none;
+}
+
+.admission-mode legend {
+  margin-bottom: 8px;
+  color: #243028;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.admission-mode-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.admission-mode-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 1px solid #d0d7d3;
+  border-radius: 999px;
+  background: #fff;
+  color: #243028;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admission-mode-option.is-selected {
+  border-color: #1f7a4d;
+  background: #eaf6ef;
+  color: #1f7a4d;
+}
+
+.admission-mode-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.admission-pay-btn {
+  width: 100%;
+}
+
+.admission-note {
+  margin: 0 0 8px;
+  color: #5f6b70;
+  font-size: 0.9rem;
+}
+
+.admission-success {
+  text-align: center;
+}
+
+.admission-success p {
+  margin: 0 0 12px;
+  color: #243028;
+  line-height: 1.5;
+}
+
+.admission-success-note {
+  color: #5f6b70 !important;
+  font-size: 0.92rem;
+}
+
+.admission-success .btn-trial {
+  width: 100%;
+  margin-top: 8px;
 }
 
 .join-form-modal .join-card {

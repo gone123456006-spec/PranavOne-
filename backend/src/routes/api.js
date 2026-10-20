@@ -3,6 +3,7 @@ import { waitlistRouter } from './waitlist.js'
 import { authRouter } from './auth.js'
 import { profileRouter } from './profile.js'
 import { adminRouter } from './admin.js'
+import { admissionsRouter } from './admissions.js'
 import { publicSettingsRouter } from './publicSettings.js'
 import { trackRouter } from './track.js'
 
@@ -20,6 +21,7 @@ apiRouter.get('/', (_req, res) => {
 apiRouter.use('/auth', authRouter)
 apiRouter.use('/profile', profileRouter)
 apiRouter.use('/waitlist', waitlistRouter)
+apiRouter.use('/admissions', admissionsRouter)
 apiRouter.use('/admin', adminRouter)
 apiRouter.use('/public/settings', publicSettingsRouter)
 apiRouter.use('/track', trackRouter)

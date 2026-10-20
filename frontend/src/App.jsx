@@ -646,6 +646,13 @@ export default function App() {
     setShowJoinForm(true)
   }
 
+  function openAdmissionForm(event) {
+    if (event) event.preventDefault()
+    setShowProfileMenu(false)
+    setShowJoinForm(false)
+    navigate('/get-admission')
+  }
+
   async function openSignInForm(event) {
     if (event) event.preventDefault()
     setShowProfileMenu(false)
@@ -811,6 +818,13 @@ export default function App() {
           </a>
 
           <div className="nav-actions">
+            <button
+              className="nav-admission"
+              type="button"
+              onClick={openAdmissionForm}
+            >
+              Admission
+            </button>
             {!user ? (
               <button
                 className="nav-signin"
@@ -1019,11 +1033,20 @@ export default function App() {
               </div>
             </div>
 
-            <JoinCtaButton
-              className="hero-cta"
-              subscriptionActive={subscriptionActive}
-              onClick={openJoinForm}
-            />
+            <div className="hero-cta-row">
+              <button
+                className="hero-cta hero-cta--admission"
+                type="button"
+                onClick={openAdmissionForm}
+              >
+                Admission
+              </button>
+              <JoinCtaButton
+                className="hero-cta"
+                subscriptionActive={subscriptionActive}
+                onClick={openJoinForm}
+              />
+            </div>
 
             <ul className="hero-stats" aria-label="Course highlights">
               <li className="hero-stat">
@@ -1353,6 +1376,7 @@ export default function App() {
 
           <div className="footer-bottom">
             <nav className="footer-links" aria-label="Policies">
+              <Link to="/get-admission">Get Admission</Link>
               <Link to="/refund-policy">Refund Policy</Link>
               <Link to="/refund-policy#job-assistance">100% Job Assistance</Link>
               <Link to="/terms">Terms &amp; Conditions</Link>

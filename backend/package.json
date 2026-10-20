@@ -21,6 +21,7 @@
     "express": "^4.21.2",
     "express-rate-limit": "^8.7.0",
     "jose": "^6.2.10",
-    "mongodb": "^7.6.0"
+    "mongodb": "^7.6.0",
+    "razorpay": "^2.9.6"
   }
 }

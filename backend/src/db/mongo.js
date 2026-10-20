@@ -171,6 +171,18 @@ async function ensureMongoIndexes(database) {
       { key: { status: 1, reminderAt: 1 }, name: 'leads_status_reminder' },
       { key: { convertedAt: -1 }, name: 'leads_converted_at' },
     ]),
+    database.collection('admissions').createIndexes([
+      { key: { createdAt: -1 }, name: 'admissions_created' },
+      { key: { status: 1, createdAt: -1 }, name: 'admissions_status_created' },
+      { key: { email: 1 }, name: 'admissions_email' },
+      { key: { phone: 1 }, name: 'admissions_phone' },
+      {
+        key: { razorpayOrderId: 1 },
+        unique: true,
+        sparse: true,
+        name: 'admissions_order_unique',
+      },
+    ]),
     database.collection('analytics_sessions').createIndexes([
       { key: { sessionId: 1 }, name: 'analytics_session_id' },
       { key: { tenantId: 1 }, name: 'analytics_tenant' },

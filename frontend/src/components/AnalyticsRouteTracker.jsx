@@ -5,6 +5,8 @@ import { trackSiteEngage, trackSitePageView } from '../lib/visitorTracking.js'
 
 const PAGE_TITLES = {
   '/': 'Pranav One — Tally + Computer Course | 100% Placement Opportunities',
+  '/get-admission': 'Get Admission — Pranav One',
+  '/admission': 'Get Admission — Pranav One',
   '/terms': 'Terms & Conditions — Pranav One',
   '/terms-and-conditions': 'Terms & Conditions — Pranav One',
   '/refund-policy': 'Refund Policy & Job Assistance — Pranav One',

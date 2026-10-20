@@ -40,6 +40,10 @@ services:
         sync: false
       - key: ADMIN_SESSION_SECRET
         sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
 
   - type: cron
     name: pranavone-keepalive
