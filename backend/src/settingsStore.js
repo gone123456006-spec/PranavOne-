@@ -139,8 +139,8 @@ export async function updateAppSettings(input = {}) {
 
   if (Object.prototype.hasOwnProperty.call(input, 'admissionFeeRupees')) {
     const rupees = Number(input.admissionFeeRupees)
-    if (!Number.isFinite(rupees) || rupees < 100 || rupees > 100_000) {
-      const error = new Error('Admission fee must be between ₹100 and ₹1,00,000.')
+    if (!Number.isFinite(rupees) || rupees < 1 || rupees > 100_000) {
+      const error = new Error('Admission fee must be between ₹1 and ₹1,00,000.')
       error.status = 400
       throw error
     }
@@ -149,8 +149,8 @@ export async function updateAppSettings(input = {}) {
 
   if (Object.prototype.hasOwnProperty.call(input, 'admissionOriginalFeeRupees')) {
     const rupees = Number(input.admissionOriginalFeeRupees)
-    if (!Number.isFinite(rupees) || rupees < 100 || rupees > 100_000) {
-      const error = new Error('Original (strike-through) fee must be between ₹100 and ₹1,00,000.')
+    if (!Number.isFinite(rupees) || rupees < 1 || rupees > 100_000) {
+      const error = new Error('Original (strike-through) fee must be between ₹1 and ₹1,00,000.')
       error.status = 400
       throw error
     }
